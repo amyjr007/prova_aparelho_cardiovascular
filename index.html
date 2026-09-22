@@ -157,6 +157,32 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .opt.on{border-color:var(--sel);background:var(--sel-soft)}
 .opt.on .let{background:var(--sel);border-color:var(--sel);color:var(--paper)}
 
+/* Circulação: o esquema à esquerda, as perguntas à direita */
+.circ-caixa{display:flex;gap:18px;align-items:flex-start}
+.circ-esq{flex:0 0 auto;width:300px;height:424px;position:relative;
+  background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.circ-esq iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.circ-dir{flex:1 1 auto;min-width:0}
+.circ-onde{margin:0 0 8px;font-family:var(--display);font-weight:700;font-size:19px;color:var(--art)}
+.circ-perg{margin:0 0 12px;font-size:17px;font-weight:700}
+.circ-abertura{margin:0 0 14px;color:var(--muted)}
+.circ-opt{margin-bottom:8px}
+.circ-passos{display:flex;gap:6px;margin-top:14px}
+.circ-passos i{width:16px;height:6px;border-radius:3px;background:var(--line)}
+.circ-passos i.ok{background:var(--ok)}
+.circ-passos i.agora{background:var(--art)}
+.circ-revisao{margin:0;padding-left:22px;font-size:14.5px;line-height:1.35}
+.circ-revisao li{margin:0 0 7px;padding-left:2px}
+.circ-revisao li.certa{color:var(--ok)}
+.circ-revisao li.errada{color:var(--art)}
+.circ-revisao li.vazia{color:var(--muted)}
+.circ-revisao b{color:var(--ink)}
+.circ-revisao .era{color:var(--ink);font-weight:700}
+@media (max-width:560px){
+  .circ-caixa{flex-direction:column;align-items:stretch;gap:12px}
+  .circ-esq{width:100%;height:330px}
+}
+
 /* Círculos para marcar (várias respostas) */
 .bolhas{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:6px}
 .bolha{position:relative;width:124px;height:124px;border-radius:50%;padding:10px;
@@ -543,14 +569,29 @@ const BASE = [
         {text:'Um exame de sangue mostrou que Clara tem pouca hemoglobina e poucas hemácias: ela está com anemia. O que acontece no sangue dela por causa disso?'}]},
  {id:9,type:'mc',por:"Um adulto tem entre 5 e 6 litros de sangue, quase um balde pequeno circulando o tempo todo.",text:'Em média, quantos litros de sangue há no corpo de uma pessoa adulta?',
   opts:['Entre 1 e 2 litros.','Entre 5 e 6 litros.','Entre 10 e 12 litros.','Cerca de 20 litros.'],ans:1},
- {id:10,type:'sort',por:"Cada parte tem seu papel: hemácia transporta gás oxigênio, glóbulo branco defende, plaqueta coagula e plasma é o líquido que carrega todo o resto.",single:true,tag:'Arrastar',text:'Leve cada componente do sangue até a sua função principal.',
-  hint:'Toque em um componente e depois no espaço ao lado da função. No computador, você também pode arrastar.',
-  items:[{id:'gv',t:'Glóbulos vermelhos'},{id:'gb',t:'Glóbulos brancos'},{id:'pl',t:'Plaquetas'},{id:'pm',t:'Plasma'}],
-  zones:[{id:'gb',t:'Defesa do organismo contra bactérias, vírus e materiais tóxicos.'},
-         {id:'pm',t:'Parte líquida, formada principalmente por água, com nutrientes e gases dissolvidos.'},
-         {id:'gv',t:'Transporte de gás oxigênio, graças à hemoglobina.'},
-         {id:'pl',t:'Coagulação do sangue, evitando perdas quando um vaso se rompe.'}],
-  correct:{gv:'gv',gb:'gb',pl:'pl',pm:'pm'}},
+ {id:10,type:'circ',tag:'Circular',por:'O trajeto é sempre o mesmo: ventrículo direito, artéria pulmonar, pulmões (onde ocorre a hematose), veia pulmonar, átrio esquerdo, ventrículo esquerdo, aorta, células do corpo (onde ocorre a combustão celular) e veias cavas de volta ao coração. A regra que resolve quase tudo: o vaso que SAI do coração é artéria, o que CHEGA é veia.',
+  text:'O esquema ao lado mostra a circulação sanguínea completa. Observe as paradas das hemácias e marque a alternativa correta sobre cada uma.',
+  hint:'Toque em Começar para a circulação iniciar. A cada resposta, as hemácias seguem até a próxima parada.',
+  paradas:[
+   {onde:'Ventrículo direito', p:'Qual o nome desta cavidade, que dá início à pequena circulação?',
+    opts:['Ventrículo direito','Átrio direito','Ventrículo esquerdo'],ans:0},
+   {onde:'Artéria pulmonar', p:'Qual o nome do vaso em que as hemácias estão agora?',
+    opts:['Veia pulmonar','Artéria pulmonar','Artéria aorta'],ans:1},
+   {onde:'Pulmões', p:'Qual o nome do fenômeno que acontece nos pulmões durante a circulação?',
+    opts:['Coagulação','Combustão celular','Hematose'],ans:2},
+   {onde:'Veia pulmonar', p:'O sangue que sai dos pulmões, depois da hematose, é chamado de:',
+    opts:['sangue arterial, rico em gás oxigênio','sangue venoso, rico em gás carbônico','plasma puro, sem células'],ans:0},
+   {onde:'Átrio esquerdo', p:'Qual o nome desta cavidade, que recebe o sangue que volta dos pulmões?',
+    opts:['Átrio direito','Átrio esquerdo','Ventrículo esquerdo'],ans:1},
+   {onde:'Ventrículo esquerdo', p:'Agora começa a grande circulação. Que cavidade é esta?',
+    opts:['Ventrículo esquerdo','Ventrículo direito','Átrio esquerdo'],ans:0},
+   {onde:'Artéria aorta', p:'Qual o nome deste vaso, que sai do coração levando sangue para todo o corpo?',
+    opts:['Veia cava','Artéria pulmonar','Artéria aorta'],ans:2},
+   {onde:'Células do corpo', p:'Ao chegar nas células, o que acontece com o gás oxigênio?',
+    opts:['É entregue às células, que o usam na combustão celular.','Volta ao coração sem ser usado.','Vira nutriente dentro do sangue.'],ans:0},
+   {onde:'Veias cavas', p:'O sangue que volta ao coração depois da combustão celular é:',
+    opts:['sangue arterial, rico em gás oxigênio','sangue venoso, rico em gás carbônico','sangue sem hemácias'],ans:1}
+  ]},
  {id:11,type:'mc',por:"O plasma é mais leve que as células, por isso sobe. Ele é pouco mais da metade do volume do sangue e tem cor amarelada.",text:'Ao centrifugar uma amostra de sangue, ela se separa em duas fases. O que fica na parte de cima do tubo?',
   opts:['O plasma, líquido amarelado que corresponde a cerca de 50% a 55% do volume do sangue.','As hemácias, que são as mais densas.','As plaquetas, formando uma camada vermelha.','Os glóbulos brancos, ocupando quase todo o tubo.'],ans:0},
  {id:12,type:'mc',por:"A medula óssea vermelha, dentro de alguns ossos, é a fábrica das células do sangue. Não confunda com a medula espinal, que é nervosa.",text:'Onde são produzidas as células sanguíneas e as plaquetas?',
@@ -638,6 +679,12 @@ function montarVersao(v){
       const antes = q.opts;
       q.opts = ordem.map(i=>antes[i]);
       q.ans = ordem.indexOf(q.ans);
+    }
+    else if(q.type==='circ'){
+      q.paradas = q.paradas.map(par=>{
+        const ordem = baralhar(par.opts.map((_,i)=>i), rnd);
+        return Object.assign({}, par, {opts: ordem.map(i=>par.opts[i]), ans: ordem.indexOf(par.ans)});
+      });
     }
     else if(q.type==='multi'){ q.items = baralhar(q.items, rnd); }
     else if(q.type==='match'){ q.left = baralhar(q.left, rnd); q.right = baralhar(q.right, rnd); }
@@ -751,6 +798,7 @@ function ir(i){
 
   if(vista!=='prova'){ verVista('prova'); return; }
   refit();
+  acordarQuadro();
   if(gira) cubo(antigo, novo, direcao);
 }
 
@@ -847,7 +895,9 @@ function montar(){
   });
   document.querySelectorAll('[data-limpar]').forEach(b=>b.addEventListener('click',()=>{
     if(S.submitted) return;
-    const id = +b.dataset.limpar; delete S.answers[id]; sel[id]=null; save(); render(byId[id]); progresso(); refit();
+    const id = +b.dataset.limpar; delete S.answers[id]; sel[id]=null; save();
+    if(byId[id].type==='circ'){ circ.andando=false; circ.parada=0; mandarCirc('reiniciar',0); }
+    render(byId[id]); progresso(); refit();
   }));
   progresso();
   if(S.submitted) mostrarResultado();
@@ -863,6 +913,18 @@ function render(q){
     } else {
       body.innerHTML = q.opts.map((o,i)=>`<button class="opt ${a===i?'on':''}" data-i="${i}" aria-pressed="${a===i}"><span class="let">${'abcde'[i]}</span><span>${o}</span></button>`).join('');
     }
+  }
+  else if(q.type==='circ'){
+    /* O quadro da circulação não pode ser redesenhado a cada resposta, senão
+       a animação recomeça do zero. Monta-se uma vez; depois só o painel da
+       direita é repintado. */
+    if(!body.querySelector('.circ-caixa')){
+      body.innerHTML = `<div class="circ-caixa">
+        <div class="circ-esq"><iframe title="Esquema da circulação sanguínea" data-src="circulacao.html" scrolling="no"></iframe></div>
+        <div class="circ-dir"></div>
+      </div>`;
+    }
+    pintarCirc(q);
   }
   else if(q.type==='multi'){
     const m = a||[];
@@ -925,6 +987,117 @@ function render(q){
   }
 }
 
+/* ---------- A circulação da questão 10 ----------
+   O esquema fica num quadro à parte (circulacao.html) e conversa com a prova
+   por mensagens: a prova pede a próxima parada, o quadro avisa quando as
+   hemácias chegaram. */
+const circ = {andando:false, parada:0, pronto:false, pendente:null, vigia:0};
+
+function quadroCirc(){
+  const el = document.querySelector('.circ-esq iframe');
+  return el && el.contentWindow ? el.contentWindow : null;
+}
+function mandarCirc(tipo, parada){
+  const w = quadroCirc();
+  if(!circ.pronto || !w){ circ.pendente = {tipo, parada}; return; }   // o quadro ainda está carregando
+  w.postMessage({para:'circulacao', tipo, parada}, '*');
+  if(tipo==='ir'){
+    // se o quadro não responder, o aluno não pode ficar preso esperando
+    clearTimeout(circ.vigia);
+    circ.vigia = setTimeout(()=>{
+      if(!circ.andando) return;
+      circ.andando = false; circ.parada = parada;
+      const q = Q.find(x=>x.type==='circ'); if(q){ pintarCirc(q); refit(); }
+    }, 20000);
+  }
+}
+/* O quadro é pesado: só carrega quando o aluno chega nesta questão. */
+function acordarQuadro(){
+  document.querySelectorAll('.q.ativa .circ-esq iframe[data-src]').forEach(f=>{
+    f.src = f.dataset.src; delete f.dataset.src;
+  });
+}
+window.addEventListener('message', e=>{
+  const d = e.data;
+  if(!d || d.de!=='circulacao') return;
+  const q = Q.find(x=>x.type==='circ'); if(!q) return;
+  if(d.tipo==='pronto'){
+    circ.pronto = true;
+    // ao recarregar a prova no meio do trajeto, o esquema pula direto para
+    // a parada em que o aluno estava
+    const a = S.answers[q.id];
+    if(a){
+      const i = a.findIndex(x=>x===null||x===undefined);
+      const onde = i<0 ? q.paradas.length-1 : i;
+      if(onde>0) mandarCirc('pular', onde);
+    }
+    if(circ.pendente){ const m = circ.pendente; circ.pendente = null; mandarCirc(m.tipo, m.parada); }
+  }
+  else if(d.tipo==='parou'){
+    clearTimeout(circ.vigia);
+    circ.andando = false; circ.parada = d.parada;
+    pintarCirc(q); refit();
+  }
+});
+
+function pintarCirc(q){
+  const painel = document.querySelector(`.body[data-q="${q.id}"] .circ-dir`);
+  if(!painel) return;
+  const a = S.answers[q.id];
+  const total = q.paradas.length;
+
+  if(S.submitted){                          // conferindo o gabarito
+    painel.innerHTML = `<p class="circ-onde">Suas respostas nas ${total} paradas</p>
+      <ol class="circ-revisao">${q.paradas.map((par,k)=>{
+        const marcou = a && a[k]!==null && a[k]!==undefined ? a[k] : null;
+        const certo = marcou===par.ans;
+        return `<li class="${marcou===null?'vazia':(certo?'certa':'errada')}">
+          <b>${par.onde}</b><br>${certo?'✔':(marcou===null?'—':'✘')} ${marcou===null?'sem resposta':esc(par.opts[marcou])}
+          ${certo||marcou===null?'':`<br><span class="era">Era: ${esc(par.opts[par.ans])}</span>`}</li>`;
+      }).join('')}</ol>`;
+    return;
+  }
+
+  if(!a){                                   // ainda não começou
+    painel.innerHTML = `<p class="circ-abertura">As hemácias estão paradas no <b>ventrículo direito</b>, prontas para começar o trajeto.</p>
+      <button class="btn" id="circComecar">Começar</button>`;
+    painel.querySelector('#circComecar').addEventListener('click',()=>{
+      if(S.submitted) return;
+      S.answers[q.id] = new Array(total).fill(null);
+      circ.parada = 0; save(); pintarCirc(q); progresso(); refit();
+    });
+    return;
+  }
+
+  const i = a.findIndex(x=>x===null||x===undefined);
+  const bolinhas = a.map((x,k)=>`<i class="${x!==null&&x!==undefined?'ok':(k===i?'agora':'')}"></i>`).join('');
+
+  if(i<0){                                  // todas respondidas
+    painel.innerHTML = `<p class="circ-onde">Circuito completo</p>
+      <p class="circ-abertura">As hemácias percorreram a pequena e a grande circulação. Você respondeu as ${total} paradas.</p>
+      <div class="circ-passos">${bolinhas}</div>`;
+    return;
+  }
+  if(circ.andando){
+    painel.innerHTML = `<p class="circ-onde">As hemácias estão a caminho…</p>
+      <div class="circ-passos">${bolinhas}</div>`;
+    return;
+  }
+
+  const par = q.paradas[i];
+  painel.innerHTML = `<p class="circ-onde">Parada ${i+1} de ${total} · ${par.onde}</p>
+    <p class="circ-perg">${par.p}</p>
+    <div class="circ-opts">${par.opts.map((o,k)=>`<button class="opt circ-opt" data-c="${k}"><span class="let">${'abc'[k]}</span><span>${o}</span></button>`).join('')}</div>
+    <div class="circ-passos">${bolinhas}</div>`;
+  painel.querySelectorAll('.circ-opt').forEach(b=>b.addEventListener('click',()=>{
+    if(S.submitted || circ.andando) return;
+    a[i] = +b.dataset.c; save();
+    circ.andando = true;
+    pintarCirc(q); progresso(); refit();
+    mandarCirc('ir', i+1);                  // segue para a próxima parada
+  }));
+}
+
 /* ---------- Gabarito comentado ---------- */
 function gabarito(q){
   if(q.type==='mc'){
@@ -933,6 +1106,7 @@ function gabarito(q){
                   : `<b>${letra})</b> ${q.opts[q.ans]}`;
   }
   if(q.type==='multi') return q.items.filter(i=>i.ok).map(i=>esc(i.t)).join(' · ');
+  if(q.type==='circ') return '<ul class="lista">' + q.paradas.map((par,i)=>`<li><b>${par.onde}:</b> ${par.opts[par.ans]}</li>`).join('') + '</ul>';
   if(q.type==='heart') return CAVIDADES[q.ans];
   if(q.type==='match')
     return '<ul class="lista">' + q.left.map(l=>`<li><b>${l.t}</b> → ${q.right.find(r=>r.id===l.id).t}</li>`).join('') + '</ul>';
@@ -1058,6 +1232,7 @@ function respondida(q){
   if(a===undefined||a===null) return false;
   if(q.type==='mc'||q.type==='heart') return true;
   if(q.type==='multi') return a.length>0;
+  if(q.type==='circ') return a.every(x=>x!==null&&x!==undefined);
   if(q.type==='match') return q.left.every(l=>a[l.id]);
   if(q.type==='sort') return q.items.every(i=>a[i.id]);
   if(q.type==='order') return a.length===q.items.length;
@@ -1083,6 +1258,7 @@ function pontos(q){
     const errou   = errados.filter(i=>a.indexOf(i.id)>=0).length;
     f = Math.max(0, acertou/certos.length - (errados.length ? errou/errados.length : 0));
   }
+  else if(q.type==='circ') f = q.paradas.filter((par,i)=>a[i]===par.ans).length/q.paradas.length;
   else if(q.type==='match') f = q.left.filter(l=>a[l.id]===l.id).length/q.left.length;
   else if(q.type==='sort') f = q.items.filter(i=>a[i.id]===q.correct[i.id]).length/q.items.length;
   else if(q.type==='order') f = q.correct.filter((c,i)=>a[i]===c).length/q.correct.length;
