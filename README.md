@@ -24,11 +24,6 @@ detalhamento de cada questão, para mostrar ao professor.
 
 Página única, sem servidor e sem coleta de dados: nada sai do aparelho do aluno.
 
-## Envio das notas
-
-A prova pode mandar a nota sozinha, assim que o aluno entrega, para uma
-planilha do Google e para o e-mail do professor. Enquanto isso não for
-
 ## As notas
 
 Quando o aluno entrega, a prova manda a nota para o **mesmo Formulário Google
