@@ -42,7 +42,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 /* Tela cheia: nada rola, tudo cabe */
 .app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.stage{position:relative;flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+.stage{position:relative;flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
 .fitbox{position:absolute;top:0;left:0;transform-origin:top left}
 .view{display:none}
 .view.on{display:block}
@@ -109,6 +109,23 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 /* Questões */
 .q{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 20px 16px;position:relative;display:none}
 .q.ativa{display:block}
+
+/* Virada de cubo entre as questões. As duas faces giram em torno do mesmo
+   eixo vertical, no centro do cubo — daí o z negativo na origem, que a
+   navegação ajusta para metade da largura do cartão. */
+#vProva{perspective:1600px;perspective-origin:50% 42%}
+#questoes{position:relative;transform-style:preserve-3d}
+.q.saindo{display:block;position:absolute;top:0;left:0;width:100%;z-index:2}
+.stage.virando{overflow:hidden}   /* a face que sai não faz surgir barra de rolagem */
+.q.saindo,.q.girando{backface-visibility:hidden;transform-origin:50% 50% var(--eixo,-320px)}
+@keyframes cubo-sai-f{from{transform:rotateY(0)}   to{transform:rotateY(-90deg)}}
+@keyframes cubo-ent-f{from{transform:rotateY(90deg)}  to{transform:rotateY(0)}}
+@keyframes cubo-sai-t{from{transform:rotateY(0)}   to{transform:rotateY(90deg)}}
+@keyframes cubo-ent-t{from{transform:rotateY(-90deg)} to{transform:rotateY(0)}}
+.frente .q.saindo {animation:cubo-sai-f .52s cubic-bezier(.62,.02,.35,1) both}
+.frente .q.girando{animation:cubo-ent-f .52s cubic-bezier(.62,.02,.35,1) both}
+.tras .q.saindo   {animation:cubo-sai-t .52s cubic-bezier(.62,.02,.35,1) both}
+.tras .q.girando  {animation:cubo-ent-t .52s cubic-bezier(.62,.02,.35,1) both}
 .marca{position:absolute;right:12px;bottom:10px;width:58px;height:58px;border-radius:50%;opacity:.12;pointer-events:none;user-select:none}
 .q.feita{border-left:5px solid var(--ok)}
 .q-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
@@ -239,6 +256,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 }
 @media (prefers-reduced-motion:reduce){
   .ecg path{animation:none;stroke-dashoffset:0}
+  .q.saindo,.q.girando{animation:none!important}
   *{transition:none!important}
 }
 </style>
@@ -525,14 +543,44 @@ function verVista(v){
   $('navbar').classList.toggle('on', v==='prova');
   refit();
 }
+const semAnimacao = ()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Encerra uma virada ainda em curso, para toques rápidos não deixarem
+   duas faces acesas ao mesmo tempo. */
+function limparCubo(){
+  const caixa = $('questoes'); if(!caixa) return;
+  $('stage').classList.remove('virando');
+  caixa.classList.remove('frente','tras');
+  caixa.querySelectorAll('.saindo,.girando').forEach(el=>el.classList.remove('saindo','girando'));
+}
+
+function cubo(antigo, novo, direcao){
+  limparCubo();
+  const caixa = $('questoes');
+  caixa.style.setProperty('--eixo', '-' + Math.round(caixa.offsetWidth/2) + 'px');
+  $('stage').classList.add('virando');
+  antigo.classList.add('saindo');
+  novo.classList.add('girando');
+  caixa.classList.add(direcao);
+  novo.addEventListener('animationend', limparCubo, {once:true});
+}
+
 function ir(i){
-  idx = Math.max(0, Math.min(Q.length-1, i));
-  S.idx = idx; save();
-  document.querySelectorAll('.q').forEach((el,n)=>el.classList.toggle('ativa', n===idx));
+  const alvo = Math.max(0, Math.min(Q.length-1, i));
+  const cartoes = document.querySelectorAll('.q');
+  const antigo = cartoes[idx], novo = cartoes[alvo];
+  const gira = vista==='prova' && antigo && novo && antigo!==novo && !semAnimacao();
+  const direcao = alvo > idx ? 'frente' : 'tras';
+
+  idx = alvo; S.idx = idx; save();
+  cartoes.forEach((el,n)=>el.classList.toggle('ativa', n===idx));
   $('navMeio').textContent = 'Questão ' + (idx+1) + ' de ' + Q.length;
   $('ant').disabled = idx===0;
   $('prox').textContent = idx===Q.length-1 ? 'Entregar' : 'Avançar ▶';
-  if(vista!=='prova') verVista('prova'); else refit();
+
+  if(vista!=='prova'){ verVista('prova'); return; }
+  refit();
+  if(gira) cubo(antigo, novo, direcao);
 }
 
 /* ---------- Capa ---------- */
