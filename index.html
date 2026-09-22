@@ -198,6 +198,10 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .grade .p{background:var(--warn-soft);color:var(--warn)}
 .grade .e{background:var(--art-soft);color:var(--art)}
 .aviso-final{margin:16px 0 0;font-size:15px;color:var(--muted)}
+.envio{margin:14px 0 0;font-size:15px;font-weight:700;color:var(--muted)}
+.envio.ok{color:var(--ok)}
+.envio.falhou{color:var(--warn);font-weight:400}
+#reenviar{margin-top:10px}
 
 .modal{position:fixed;inset:0;background:rgba(10,14,22,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
 .modal.on{display:flex}
@@ -315,6 +319,10 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 const KEY = 'prova-cfb3-cardiovascular-v1';
 const SALAS = ['801M','802M','803M','801T','802T'];
 const VAL = 0.5;
+
+/* Cole aqui a URL do app da web do Apps Script (termina em /exec).
+   Em branco, a prova funciona normalmente e só não envia a nota. */
+const ENVIO_URL = '';
 
 const Q = [
  {id:1,type:'mc',text:'O sistema cardiovascular é formado por três elementos principais. Quais são eles?',
@@ -765,10 +773,68 @@ $('modalOk').addEventListener('click',()=>{
   const total = Math.round(pts.reduce((s,x)=>s+x,0)*10)/10;
   S.submitted = true;
   S.result = {nota: total, pts, quando: new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})};
+  S.envioId = (self.crypto && crypto.randomUUID) ? crypto.randomUUID()
+              : Date.now() + '-' + Math.random().toString(36).slice(2);
   save();
+  enfileirar();
   Q.forEach(render);
   mostrarResultado();
 });
+
+/* ---------- Envio da nota ao professor ---------- */
+const FILA = KEY + '-fila';
+function lerFila(){ try{ return JSON.parse(localStorage.getItem(FILA)||'[]'); }catch(e){ return []; } }
+function gravarFila(f){ try{ localStorage.setItem(FILA, JSON.stringify(f)); }catch(e){} }
+
+function enfileirar(){
+  const r = S.result; if(!r) return;
+  const certas  = r.pts.filter(p=>p>=VAL-1e-9).length;
+  const zeradas = r.pts.filter(p=>p<=1e-9).length;
+  const f = lerFila();
+  if(f.some(x=>x.id===S.envioId)) return;
+  f.push({
+    id: S.envioId,
+    prova: 'Sistema cardiovascular',
+    nome: S.nome, turma: S.sala,
+    entregue: r.quando,
+    nota: r.nota, total: 10,
+    certas, parciais: Q.length - certas - zeradas, zeradas,
+    questoes: r.pts.map(p=>Math.round(p*100)/100)
+  });
+  gravarFila(f);
+}
+
+function estadoEnvio(estado){
+  const el = $('envio'); if(!el) return;
+  const txt = {
+    'sem-config':'',
+    enviando:'Enviando a nota ao professor…',
+    ok:'✔ Nota enviada ao professor.',
+    falhou:'Sem conexão: a nota está guardada neste aparelho e vai sozinha quando houver internet. Mostre esta tela ao professor.'
+  };
+  el.className = 'envio ' + estado;
+  el.textContent = txt[estado] || '';
+  $('reenviar').style.display = estado==='falhou' ? '' : 'none';
+  refit();
+}
+
+async function enviarFila(){
+  if(!ENVIO_URL) return estadoEnvio('sem-config');
+  const f = lerFila();
+  if(!f.length) return estadoEnvio('ok');
+  estadoEnvio('enviando');
+  const restantes = [];
+  for(const item of f){
+    try{
+      const resp = await fetch(ENVIO_URL,{method:'POST',body:JSON.stringify(item)});
+      const txt = await resp.text();
+      if(!/"ok"\s*:\s*true/.test(txt)) throw new Error(txt.slice(0,120));
+    }catch(e){ restantes.push(item); }
+  }
+  gravarFila(restantes);
+  estadoEnvio(restantes.length ? 'falhou' : 'ok');
+}
+window.addEventListener('online', ()=>{ if(S.submitted) enviarFila(); });
 
 function mostrarResultado(){
   const r = S.result; if(!r) return;
@@ -779,8 +845,12 @@ function mostrarResultado(){
     <p class="nota">${fmt(r.nota)} <small>de 10,0</small></p>
     <p class="res-info">${esc(S.nome)}, sala ${esc(S.sala)}. Entregue em ${esc(r.quando)}.</p>
     <div class="grade">${r.pts.map((p,i)=>{ const cls = p>=VAL-1e-9 ? 'c' : (p>0 ? 'p' : 'e'); return `<div class="${cls}"><span>Questão ${i+1}</span><strong>${p.toFixed(2).replace('.',',')}</strong></div>`; }).join('')}</div>
-    <p class="aviso-final">Verde: acertou tudo. Amarelo: acertou em parte. Vermelho: não pontuou. Mostre esta tela ao professor.</p>`;
+    <p class="aviso-final">Verde: acertou tudo. Amarelo: acertou em parte. Vermelho: não pontuou. Mostre esta tela ao professor.</p>
+    <p class="envio" id="envio"></p>
+    <button class="btn sec" id="reenviar" style="display:none">Tentar enviar de novo</button>`;
+  $('reenviar').addEventListener('click', enviarFila);
   verVista('fim');
+  if(ENVIO_URL) enviarFila();
 }
 
 if(S.started) iniciar(); else refit();
