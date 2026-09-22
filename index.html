@@ -124,6 +124,17 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .opt.on{border-color:var(--sel);background:var(--sel-soft)}
 .opt.on .let{background:var(--sel);border-color:var(--sel);color:var(--paper)}
 
+/* Círculos para marcar (várias respostas) */
+.bolhas{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin-top:6px}
+.bolha{position:relative;width:124px;height:124px;border-radius:50%;padding:10px;
+  border:3px solid var(--c);background:var(--cs);color:var(--c);
+  font-weight:700;font-size:16.5px;line-height:1.2;text-align:center;
+  display:grid;place-items:center;transition:transform .12s}
+.bolha.on{background:var(--c);color:#fff;box-shadow:0 0 0 5px var(--cs);transform:scale(1.04)}
+.bolha .tick{position:absolute;top:6px;right:10px;font-size:20px;opacity:0}
+.bolha.on .tick{opacity:1}
+@media (max-width:560px){ .bolhas{gap:12px} .bolha{width:104px;height:104px;font-size:15px} }
+
 /* Alternativas em figura */
 .figs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:4px}
 .opt.fig{flex-direction:column;align-items:center;gap:8px;padding:12px 8px;margin:0;border-color:var(--line)}
@@ -403,8 +414,13 @@ const Q = [
       <circle cx="46" cy="48" r="6" fill="#EDEFF6" opacity=".55"/>
     </svg>`],
   ans:2},
- {id:5,type:'mc',text:'Dona Célia sente cansaço, inchaço e dores nas pernas, e algumas veias ficaram dilatadas e tortuosas. Esse problema, chamado varizes, acontece quando:',
-  opts:['as válvulas das veias não funcionam bem e o sangue fica retido.','as plaquetas deixam de funcionar.','as artérias ficam elásticas demais.','o coração bate mais de 72 vezes por minuto.'],ans:0},
+ {id:5,type:'multi',tag:'Marcar',text:'Marque a seguir os tipos de substâncias que são transportadas pelo aparelho cardiovascular. <b>(pode marcar mais de uma)</b>',
+  hint:'Toque em cada círculo que você quiser marcar. Toque de novo para desmarcar.',
+  items:[{id:'horm',t:'Hormônios',    cor:'#6D3A96', soft:'#EFE5F7', ok:true},
+         {id:'agua',t:'Água',         cor:'#2455B0', soft:'#E2EBFA', ok:false},
+         {id:'o2',  t:'Gás oxigênio', cor:'#C62839', soft:'#FBE3E6', ok:true},
+         {id:'nutr',t:'Nutrientes',   cor:'#237A4B', soft:'#DFF3E7', ok:true},
+         {id:'alc', t:'Álcool',       cor:'#9A5B00', soft:'#FDF0D9', ok:false}]},
  {id:6,type:'sort',tag:'Arrastar',text:'Classifique os vasos de acordo com o tipo de sangue que transportam.',
   hint:'Toque em um vaso e depois na caixa certa. No computador, você também pode arrastar.',
   items:[{id:'aorta',t:'Aorta'},{id:'vpul',t:'Veias pulmonares'},{id:'apul',t:'Artérias pulmonares'},{id:'vcs',t:'Veia cava superior'},{id:'afem',t:'Artéria femoral'},{id:'vci',t:'Veia cava inferior'}],
@@ -555,7 +571,7 @@ $('prox').addEventListener('click',()=>{
 
 /* ---------- Montagem ---------- */
 function montar(){
-  const tagTxt = {Ligar:'Interativa: ligar',Arrastar:'Interativa: arrastar',Ordenar:'Interativa: ordenar',Tocar:'Interativa: tocar',Completar:'Interativa: completar'};
+  const tagTxt = {Marcar:'Interativa: marcar',Ligar:'Interativa: ligar',Arrastar:'Interativa: arrastar',Ordenar:'Interativa: ordenar',Tocar:'Interativa: tocar',Completar:'Interativa: completar'};
   $('questoes').innerHTML = Q.map(q=>`
     <article class="q" id="q${q.id}" aria-labelledby="qt${q.id}">
       <div class="q-cab">
@@ -598,6 +614,13 @@ function render(q){
     } else {
       body.innerHTML = q.opts.map((o,i)=>`<button class="opt ${a===i?'on':''}" data-i="${i}" aria-pressed="${a===i}"><span class="let">${'abcde'[i]}</span><span>${o}</span></button>`).join('');
     }
+  }
+  else if(q.type==='multi'){
+    const m = a||[];
+    body.innerHTML = `<div class="bolhas">${q.items.map(it=>{
+      const on = m.indexOf(it.id)>=0;
+      return `<button class="bolha ${on?'on':''}" style="--c:${it.cor};--cs:${it.soft}" data-m="${it.id}" aria-pressed="${on}"><span class="tick" aria-hidden="true">✓</span><span>${it.t}</span></button>`;
+    }).join('')}</div>`;
   }
   else if(q.type==='match'){
     const m = a||{};
@@ -669,6 +692,12 @@ function onClick(e){
   if(q.type==='mc'){
     const b = e.target.closest('.opt'); if(!b) return;
     S.answers[id] = +b.dataset.i;
+  }
+  else if(q.type==='multi'){
+    const b = e.target.closest('.bolha'); if(!b) return;
+    const m = S.answers[id] = S.answers[id]||[];
+    const i = m.indexOf(b.dataset.m);
+    if(i>=0) m.splice(i,1); else m.push(b.dataset.m);
   }
   else if(q.type==='match'){
     const b = e.target.closest('.mbtn'); if(!b) return;
@@ -743,6 +772,7 @@ function respondida(q){
   const a = S.answers[q.id];
   if(a===undefined||a===null) return false;
   if(q.type==='mc'||q.type==='heart') return true;
+  if(q.type==='multi') return a.length>0;
   if(q.type==='match') return q.left.every(l=>a[l.id]);
   if(q.type==='sort') return q.items.every(i=>a[i.id]);
   if(q.type==='order') return a.length===q.items.length;
@@ -760,6 +790,14 @@ function pontos(q){
   let f = 0;
   if(q.type==='mc') f = a===q.ans ? 1 : 0;
   else if(q.type==='heart') f = a===q.ans ? 1 : 0;
+  else if(q.type==='multi'){
+    // Cada certa marcada soma, cada errada marcada desconta na mesma medida.
+    // Assim quem marca tudo fica com zero, e quem sabia quase tudo leva parte.
+    const certos = q.items.filter(i=>i.ok), errados = q.items.filter(i=>!i.ok);
+    const acertou = certos.filter(i=>a.indexOf(i.id)>=0).length;
+    const errou   = errados.filter(i=>a.indexOf(i.id)>=0).length;
+    f = Math.max(0, acertou/certos.length - (errados.length ? errou/errados.length : 0));
+  }
   else if(q.type==='match') f = q.left.filter(l=>a[l.id]===l.id).length/q.left.length;
   else if(q.type==='sort') f = q.items.filter(i=>a[i.id]===q.correct[i.id]).length/q.items.length;
   else if(q.type==='order') f = q.correct.filter((c,i)=>a[i]===c).length/q.correct.length;
