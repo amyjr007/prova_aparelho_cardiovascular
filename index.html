@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3ª Avaliação de C.F.B. – Sistema cardiovascular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{
+  --bg:#EEF2F7;--paper:#FFFFFF;--ink:#172033;--muted:#5A6478;--line:#D5DCE6;
+  --art:#C62839;--art-soft:#FBE3E6;--vei:#2455B0;--vei-soft:#E2EBFA;
+  --sel:#6D3A96;--sel-soft:#EFE5F7;--ok:#237A4B;--ok-soft:#DFF3E7;--warn:#9A5B00;--warn-soft:#FDF0D9;
+  --chamber:#F6CDD2;--chamber-stroke:#9E2231;--heart:#FBE9EB;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",Roboto,system-ui,sans-serif;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10151F;--paper:#182030;--ink:#E8ECF3;--muted:#A2ACBD;--line:#2E384B;
+    --art:#FF6F7E;--art-soft:#3A1C23;--vei:#86ABF6;--vei-soft:#1B2A45;
+    --sel:#C99DEE;--sel-soft:#2E2140;--ok:#72D39C;--ok-soft:#173524;--warn:#F2B55B;--warn-soft:#3A2A12;
+    --chamber:#5A2A33;--chamber-stroke:#FF8A96;--heart:#2A1C22;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10151F;--paper:#182030;--ink:#E8ECF3;--muted:#A2ACBD;--line:#2E384B;
+  --art:#FF6F7E;--art-soft:#3A1C23;--vei:#86ABF6;--vei-soft:#1B2A45;
+  --sel:#C99DEE;--sel-soft:#2E2140;--ok:#72D39C;--ok-soft:#173524;--warn:#F2B55B;--warn-soft:#3A2A12;
+  --chamber:#5A2A33;--chamber-stroke:#FF8A96;--heart:#2A1C22;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-text-size-adjust:100%;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
+
+/* Tela cheia: nada rola, tudo cabe */
+.app{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.stage{position:relative;flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+.fitbox{position:absolute;top:0;left:0;transform-origin:top left}
+.view{display:none}
+.view.on{display:block}
+
+/* Capa */
+.capa{background:var(--paper);border:2px solid var(--ink);border-radius:6px;padding:22px 24px 22px;position:relative;overflow:hidden}
+.brasao{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.brasao img{flex:0 0 auto;width:78px;height:78px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.capa h1{font-family:var(--display);font-weight:800;font-size:clamp(24px,4.8vw,34px);line-height:1.05;margin:0 0 4px;letter-spacing:-.01em}
+.capa .sub{margin:0;color:var(--muted)}
+.ecg{display:block;width:100%;height:56px;margin:14px 0 6px}
+.ecg path{fill:none;stroke:var(--art);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 2.2s ease-out .3s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.titulo-prova{font-family:var(--display);font-weight:700;font-size:clamp(22px,4.4vw,30px);margin:6px 0 16px;line-height:1.15}
+.ficha{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.ficha > div{padding:10px 0;border-bottom:1px solid var(--line)}
+.ficha > div:nth-child(odd){padding-right:12px}
+.ficha .k{display:block;font-size:14px;color:var(--muted)}
+.ficha .v{font-weight:700}
+.ficha .full{grid-column:1 / -1}
+.campo{margin-top:18px}
+.campo label,.campo .lbl{display:block;font-weight:700;margin-bottom:6px}
+.campo input{width:100%;padding:12px 14px;font:inherit;border:2px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.campo input:disabled{opacity:.8}
+.salas{display:flex;flex-wrap:wrap;gap:8px}
+.salas button{border:2px solid var(--line);background:var(--bg);border-radius:6px;padding:8px 16px;font-weight:700;min-width:74px}
+.salas button[aria-pressed="true"]{border-color:var(--sel);background:var(--sel-soft);color:var(--sel)}
+.salas button:disabled{cursor:default}
+.instrucoes{margin-top:20px;background:var(--vei-soft);border-left:5px solid var(--vei);padding:12px 16px;border-radius:0 6px 6px 0}
+.instrucoes h2{font-family:var(--display);font-size:20px;margin:0 0 4px}
+.instrucoes ul{margin:0;padding-left:20px}
+.instrucoes li{margin:3px 0}
+.erro{color:var(--art);font-weight:700;min-height:1.5em;margin:10px 0 0}
+.btn{display:inline-block;border:none;border-radius:6px;padding:14px 22px;font-weight:700;font-size:18px;background:var(--art);color:#fff}
+.btn.sec{background:transparent;color:var(--ink);border:2px solid var(--line)}
+:root[data-theme="dark"] .btn:not(.sec){color:#1a0b0e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn:not(.sec){color:#1a0b0e}}
+.acoes{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Barra de progresso */
+.barra{flex:0 0 auto;background:var(--paper);border-bottom:2px solid var(--ink);display:none}
+.barra.on{display:block}
+.barra .in{max-width:820px;margin:0 auto;padding:8px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:15px}
+.barra .selo{flex:0 0 auto;width:30px;height:30px;border-radius:50%;opacity:.9}
+.barra .aluno{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto}
+.barra .trilho{flex:0 0 32%;height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.barra .fill{height:100%;background:var(--art);width:0;transition:width .3s}
+.barra .cont{white-space:nowrap;color:var(--muted)}
+
+/* Faixa fina de rodapé */
+.navbar{flex:0 0 auto;background:var(--paper);border-top:1px solid var(--line);display:none}
+.navbar.on{display:block}
+.navbar .in{max-width:820px;margin:0 auto;padding:3px 14px;text-align:center}
+.navbar .meio{font-size:13px;line-height:1.5;color:var(--muted);white-space:nowrap}
+
+/* Botões de navegação, no pé da página */
+.navq{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px}
+.nbtn{border:2px solid var(--line);background:var(--bg);border-radius:6px;padding:10px 18px;font-weight:700;font-size:16px;white-space:nowrap}
+.nbtn.pri{border-color:var(--art);background:var(--art);color:#fff}
+:root[data-theme="dark"] .nbtn.pri{color:#1a0b0e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nbtn.pri{color:#1a0b0e}}
+.nbtn:disabled{opacity:.35;cursor:default}
+
+/* Questões */
+.q{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px 20px 16px;position:relative;display:none}
+.q.ativa{display:block}
+.marca{position:absolute;right:12px;bottom:10px;width:58px;height:58px;border-radius:50%;opacity:.12;pointer-events:none;user-select:none}
+.q.feita{border-left:5px solid var(--ok)}
+.q-cab{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.q-num{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;color:var(--art);min-width:1.6em}
+.tag{font-size:13px;font-weight:700;border-radius:4px;padding:2px 8px;background:var(--sel-soft);color:var(--sel)}
+.valor{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.q-texto{margin:0 0 14px;font-size:18px}
+.dica{font-size:15px;color:var(--muted);margin:-8px 0 12px}
+.limpar{border:none;background:none;color:var(--muted);text-decoration:underline;font-size:14px;padding:4px 0;margin-top:10px}
+
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--bg);border:2px solid transparent;border-radius:6px;padding:11px 14px;margin:0 0 8px}
+.opt .let{flex:0 0 28px;height:28px;border-radius:50%;border:2px solid var(--muted);display:grid;place-items:center;font-weight:700;font-size:15px;line-height:1}
+.opt.on{border-color:var(--sel);background:var(--sel-soft)}
+.opt.on .let{background:var(--sel);border-color:var(--sel);color:var(--paper)}
+
+/* Alternativas em figura */
+.figs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:4px}
+.opt.fig{flex-direction:column;align-items:center;gap:8px;padding:12px 8px;margin:0;border-color:var(--line)}
+.opt.fig svg{width:100%;height:auto;max-width:120px;display:block}
+@media (max-width:560px){ .figs{grid-template-columns:repeat(3,1fr);gap:8px} .opt.fig{padding:9px 5px} }
+
+/* Ligar */
+.match{position:relative;display:grid;grid-template-columns:minmax(96px,32%) 1fr;gap:12px 48px}
+.match svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.col{display:flex;flex-direction:column;gap:10px;justify-content:space-around}
+.mbtn{border:2px solid var(--line);background:var(--bg);border-radius:6px;padding:10px 12px;text-align:left;font-size:16px;position:relative;z-index:1}
+.col.L .mbtn{font-weight:700;text-align:center}
+.mbtn.on{border-color:var(--sel);background:var(--sel-soft);box-shadow:0 0 0 3px var(--sel-soft)}
+
+/* Classificar / arrastar */
+.pool{min-height:58px;border:2px dashed var(--line);border-radius:6px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.pool .vazio{color:var(--muted);font-size:15px}
+.chip{border:2px solid var(--ink);background:var(--paper);border-radius:999px;padding:7px 14px;font-weight:700;font-size:15px;touch-action:manipulation}
+.chip.on{border-color:var(--sel);background:var(--sel);color:var(--paper)}
+.zonas{display:grid;gap:10px}
+.zonas.duas{grid-template-columns:1fr 1fr}
+.zona{border:2px solid var(--line);border-radius:6px;padding:10px;min-height:96px;background:var(--bg)}
+.zona.alvo{border-color:var(--sel);border-style:dashed}
+.zona.art{border-color:var(--art);background:var(--art-soft)}
+.zona.vei{border-color:var(--vei);background:var(--vei-soft)}
+.zona h4{margin:0 0 8px;font-size:15px;line-height:1.35}
+.zona.art h4{color:var(--art)} .zona.vei h4{color:var(--vei)}
+.zona .dentro{display:flex;flex-wrap:wrap;gap:6px}
+.zonas.um .zona{min-height:0;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.zonas.um .zona h4{margin:0;font-weight:400;font-size:16px}
+.zonas.um .zona .dentro{min-width:150px;min-height:40px;border:2px dashed var(--line);border-radius:999px;justify-content:center;align-items:center;padding:2px}
+
+/* Ordenar */
+.ordem{display:flex;flex-direction:column;gap:8px}
+.obtn{display:flex;gap:12px;align-items:center;text-align:left;background:var(--bg);border:2px solid var(--line);border-radius:6px;padding:10px 12px}
+.obtn .n{flex:0 0 34px;height:34px;border-radius:50%;border:2px dashed var(--muted);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px}
+.obtn.on{border-color:var(--sel);background:var(--sel-soft)}
+.obtn.on .n{border-style:solid;border-color:var(--sel);background:var(--sel);color:var(--paper)}
+
+/* Coração */
+.coracao{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:18px;align-items:center}
+.coracao svg{width:100%;height:auto;max-width:300px}
+.coracao .contorno{fill:var(--heart);stroke:var(--chamber-stroke);stroke-width:3}
+.coracao .vaso{fill:var(--heart);stroke:var(--chamber-stroke);stroke-width:3}
+.coracao .cav{fill:var(--chamber);stroke:var(--chamber-stroke);stroke-width:2;cursor:pointer;transition:fill .15s}
+.coracao .cav:hover{fill:var(--sel-soft)}
+.coracao .cav.on{fill:var(--sel);stroke:var(--sel)}
+.coracao .cav:focus-visible{outline:none;stroke:var(--sel);stroke-width:5}
+.coracao .leg{font-size:15px;color:var(--muted)}
+.coracao .leg strong{color:var(--ink)}
+
+/* Lacunas */
+.texto-lac{font-size:18px;line-height:2.3;margin:0 0 12px}
+.blank{border:none;border-bottom:3px solid var(--muted);background:var(--bg);border-radius:4px 4px 0 0;padding:0 10px;min-width:110px;font-weight:700;line-height:1.6;color:var(--muted)}
+.blank.cheia{color:var(--sel);border-bottom-color:var(--sel)}
+.blank.on{background:var(--sel-soft);border-bottom-color:var(--sel);color:var(--sel)}
+.banco{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:2px dashed var(--line);border-radius:6px;min-height:58px;align-items:center}
+
+.travada .body{pointer-events:none}
+.travada .limpar{display:none}
+
+/* Resultado */
+#resultado{background:var(--paper);border:2px solid var(--ink);border-radius:6px;padding:22px;position:relative;overflow:hidden;text-align:center}
+#resultado h2{font-family:var(--display);font-size:26px;margin:0}
+#resultado .selo-fim{width:62px;height:62px;border-radius:50%;margin:0 auto 8px;display:block;opacity:.92}
+.nota{font-family:var(--display);font-weight:800;font-size:clamp(64px,16vw,96px);line-height:1;color:var(--art);margin:10px 0 2px}
+.nota small{font-size:.35em;color:var(--muted);font-weight:700}
+.res-info{color:var(--muted);margin:0 0 16px}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+.grade div{border-radius:4px;padding:6px 10px;font-size:15px;display:flex;justify-content:space-between;gap:6px}
+.grade .c{background:var(--ok-soft);color:var(--ok)}
+.grade .p{background:var(--warn-soft);color:var(--warn)}
+.grade .e{background:var(--art-soft);color:var(--art)}
+.aviso-final{margin:16px 0 0;font-size:15px;color:var(--muted)}
+
+.modal{position:fixed;inset:0;background:rgba(10,14,22,.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal.on{display:flex}
+.modal .box{background:var(--paper);border-radius:8px;padding:22px;max-width:440px;width:100%;border:2px solid var(--ink)}
+.modal h3{font-family:var(--display);font-size:22px;margin:0 0 8px}
+.modal p{margin:0 0 16px}
+
+@media (max-width:560px){
+  body{font-size:16px}
+  .capa{padding:18px 16px}
+  .brasao img{width:62px;height:62px}
+  .q{padding:14px 14px}
+  .marca{width:44px;height:44px}
+  .q-texto{font-size:17px}
+  .ficha{grid-template-columns:1fr}
+  .ficha > div:nth-child(odd){padding-right:0}
+  .zonas.duas{grid-template-columns:1fr}
+  .match{gap:10px 28px;grid-template-columns:minmax(80px,30%) 1fr}
+  .mbtn{font-size:14.5px;padding:8px 9px}
+  .coracao{grid-template-columns:1fr;justify-items:center}
+  .zonas.um .zona{grid-template-columns:1fr}
+  .zonas.um .zona .dentro{min-width:0}
+  .barra .trilho{flex-basis:28%}
+}
+@media (prefers-reduced-motion:reduce){
+  .ecg path{animation:none;stroke-dashoffset:0}
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<div class="barra" id="barra"><div class="in">
+  <img class="selo" src="icons/icon-192.png" alt="" aria-hidden="true">
+  <span class="aluno" id="barraAluno"></span>
+  <div class="trilho" aria-hidden="true"><div class="fill" id="barraFill"></div></div>
+  <span class="cont" id="barraCont">0 de 20</span>
+</div></div>
+
+<div class="stage" id="stage"><div class="fitbox" id="fitbox">
+
+  <section class="capa view on" id="vCapa" aria-labelledby="escola">
+    <div class="brasao">
+      <img src="icons/icon-512.png" alt="Brasão da Escola Estadual Feliz Lusitânia">
+      <div>
+        <h1 id="escola">Escola Estadual “Feliz Lusitânia”</h1>
+        <p class="sub">Diretora: Carla Nilce<br>Professor: Amauri Junior</p>
+      </div>
+    </div>
+    <svg class="ecg" viewBox="0 0 740 56" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 34 H250 L262 34 L272 22 L282 34 L300 34 L312 4 L326 52 L338 26 L348 34 H420 L432 34 L442 22 L452 34 L470 34 L482 4 L496 52 L508 26 L518 34 H740"/>
+    </svg>
+    <p class="titulo-prova">3ª Avaliação de C.F.B.<br>Sistema cardiovascular</p>
+
+    <div class="ficha">
+      <div><span class="k">Valor</span><span class="v">10,0 pontos</span></div>
+      <div><span class="k">Nota</span><span class="v" id="notaCapa">—</span></div>
+    </div>
+
+    <div class="campo">
+      <label for="nome">Nome completo</label>
+      <input id="nome" type="text" autocomplete="name" placeholder="Digite seu nome completo">
+    </div>
+    <div class="campo">
+      <span class="lbl" id="salaLbl">Sala</span>
+      <div class="salas" role="group" aria-labelledby="salaLbl" id="salas"></div>
+    </div>
+
+    <div class="instrucoes">
+      <h2>Antes de começar</h2>
+      <ul>
+        <li>A prova tem 20 questões. Cada uma vale 0,5 ponto.</li>
+        <li>Nas questões de múltipla escolha, toque na alternativa correta.</li>
+        <li>Algumas questões são interativas: você vai tocar, arrastar, ligar, ordenar ou completar. Nelas, cada parte certa vale uma parte da nota.</li>
+        <li>Revise tudo antes de entregar. Depois da entrega, as respostas não podem ser mudadas.</li>
+      </ul>
+    </div>
+    <p class="erro" id="erroCapa" role="alert"></p>
+    <div class="acoes" id="acoesCapa"><button class="btn" id="comecar">Começar a prova</button></div>
+  </section>
+
+  <div class="view" id="vProva" aria-label="Questões">
+    <div id="questoes"></div>
+    <div class="navq">
+      <button class="nbtn" id="ant">◀ Voltar</button>
+      <button class="nbtn pri" id="prox">Avançar ▶</button>
+    </div>
+  </div>
+
+  <section class="view" id="vFim"><div id="resultado" aria-live="polite"></div></section>
+
+</div></div>
+
+<div class="navbar" id="navbar"><div class="in">
+  <span class="meio" id="navMeio"></span>
+</div></div>
+
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalT">
+  <div class="box">
+    <h3 id="modalT"></h3>
+    <p id="modalP"></p>
+    <div class="acoes">
+      <button class="btn" id="modalOk">Entregar</button>
+      <button class="btn sec" id="modalVolta">Voltar e revisar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const KEY = 'prova-cfb3-cardiovascular-v1';
+const SALAS = ['801M','802M','803M','801T','802T'];
+const VAL = 0.5;
+
+const Q = [
+ {id:1,type:'mc',text:'O sistema cardiovascular é formado por três elementos principais. Quais são eles?',
+  opts:['Coração, pulmões e sangue.','Vasos sanguíneos, sangue e coração.','Artérias, veias e pulmões.','Coração, baço e fígado.'],ans:1},
+ {id:2,type:'mc',text:'Sobre as artérias, é correto afirmar que elas:',
+  opts:['levam o sangue dos tecidos para o coração e possuem válvulas em seu interior.','têm parede formada por uma única camada de células.','levam o sangue do coração para os tecidos e têm paredes grossas e elásticas.','transportam apenas sangue rico em gás carbônico.'],ans:2},
+ {id:3,type:'match',tag:'Ligar',text:'Ligue cada vaso sanguíneo à característica que o descreve.',
+  hint:'Toque em um vaso e depois na característica. Para desfazer uma ligação, toque na característica.',
+  left:[{id:'art',t:'Artéria'},{id:'vei',t:'Veia'},{id:'cap',t:'Capilar'}],
+  right:[{id:'cap',t:'Parede com uma única camada de células, que facilita as trocas com os tecidos.'},
+         {id:'art',t:'Parede grossa e elástica, que suporta a alta pressão do sangue bombeado pelo coração.'},
+         {id:'vei',t:'Possui válvulas que impedem o refluxo e leva o sangue de volta ao coração.'}]},
+ {id:4,type:'mc',figs:true,tag:'Tocar',text:'Qual destas imagens representa bem as hemácias, células do sangue cuja falta causa um quadro clínico chamado anemia?',
+  hint:'Toque na figura que você escolher.',
+  opts:[
+   /* a - bactéria */
+   `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <g stroke="#2F7049" stroke-width="2" fill="none" stroke-linecap="round">
+        <path d="M14 66 C6 62,6 74,14 72"/><path d="M88 34 C96 30,96 42,88 40"/>
+      </g>
+      <rect x="20" y="36" width="62" height="30" rx="15" fill="#3C8D5B" stroke="#2F7049" stroke-width="2" transform="rotate(-20 51 51)"/>
+      <g fill="#6FC191" transform="rotate(-20 51 51)"><circle cx="36" cy="49" r="4"/><circle cx="52" cy="54" r="3.4"/><circle cx="66" cy="47" r="3"/></g>
+    </svg>`,
+   /* b - plaqueta */
+   `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M34 30 C50 22,72 26,78 42 C86 60,74 76,56 78 C38 80,24 68,24 52 C24 42,27 34,34 30 Z" fill="#E0AE4A" stroke="#A97C22" stroke-width="2.5"/>
+      <g fill="#A97C22" opacity=".65"><circle cx="46" cy="44" r="3.6"/><circle cx="60" cy="54" r="3"/><circle cx="43" cy="62" r="2.6"/><circle cx="64" cy="38" r="2.4"/></g>
+    </svg>`,
+   /* c - hemácias (correta) */
+   `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <g>
+        <ellipse cx="34" cy="36" rx="25" ry="23" fill="#B3202E"/>
+        <ellipse cx="34" cy="36" rx="10.5" ry="9.5" fill="#8B1421"/>
+        <ellipse cx="70" cy="40" rx="22" ry="20" fill="#C0242F"/>
+        <ellipse cx="70" cy="40" rx="9" ry="8" fill="#93131F"/>
+        <ellipse cx="52" cy="68" rx="28" ry="26" fill="#D62B38"/>
+        <ellipse cx="52" cy="68" rx="12" ry="11" fill="#A31D28"/>
+        <ellipse cx="42" cy="58" rx="7" ry="4" fill="#F0808A" opacity=".55" transform="rotate(-30 42 58)"/>
+      </g>
+    </svg>`,
+   /* d - vírus */
+   `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <g stroke="#6D3A96" stroke-width="3" stroke-linecap="round">
+        <path d="M50 24 V10"/><path d="M50 76 V90"/><path d="M24 50 H10"/><path d="M76 50 H90"/>
+        <path d="M32 32 L22 22"/><path d="M68 32 L78 22"/><path d="M32 68 L22 78"/><path d="M68 68 L78 78"/>
+      </g>
+      <g fill="#8E5BBE"><circle cx="50" cy="9" r="5"/><circle cx="50" cy="91" r="5"/><circle cx="9" cy="50" r="5"/><circle cx="91" cy="50" r="5"/>
+        <circle cx="21" cy="21" r="4.5"/><circle cx="79" cy="21" r="4.5"/><circle cx="21" cy="79" r="4.5"/><circle cx="79" cy="79" r="4.5"/></g>
+      <circle cx="50" cy="50" r="26" fill="#6D3A96"/>
+      <circle cx="50" cy="50" r="12" fill="#B48BD8"/>
+    </svg>`,
+   /* e - glóbulo branco */
+   `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="31" fill="#EDEFF6" stroke="#B9C0D2" stroke-width="2.5"/>
+      <path d="M40 34 C54 28,66 36,64 48 C62 60,70 64,66 72 C60 82,40 78,34 66 C28 54,30 39,40 34 Z" fill="#7A4AA8"/>
+      <circle cx="46" cy="48" r="6" fill="#EDEFF6" opacity=".55"/>
+    </svg>`],
+  ans:2},
+ {id:5,type:'mc',text:'Dona Célia sente cansaço, inchaço e dores nas pernas, e algumas veias ficaram dilatadas e tortuosas. Esse problema, chamado varizes, acontece quando:',
+  opts:['as válvulas das veias não funcionam bem e o sangue fica retido.','as plaquetas deixam de funcionar.','as artérias ficam elásticas demais.','o coração bate mais de 72 vezes por minuto.'],ans:0},
+ {id:6,type:'sort',tag:'Arrastar',text:'Classifique os vasos de acordo com o tipo de sangue que transportam.',
+  hint:'Toque em um vaso e depois na caixa certa. No computador, você também pode arrastar.',
+  items:[{id:'aorta',t:'Aorta'},{id:'vpul',t:'Veias pulmonares'},{id:'apul',t:'Artérias pulmonares'},{id:'vcs',t:'Veia cava superior'},{id:'afem',t:'Artéria femoral'},{id:'vci',t:'Veia cava inferior'}],
+  zones:[{id:'o2',t:'Sangue rico em gás oxigênio',cls:'art'},{id:'co2',t:'Sangue rico em gás carbônico',cls:'vei'}],
+  correct:{aorta:'o2',vpul:'o2',apul:'co2',vcs:'co2',afem:'o2',vci:'co2'}},
+ {id:7,type:'mc',text:'Um colega disse: “Artéria é o vaso que leva sangue rico em oxigênio, e veia é o que leva sangue rico em gás carbônico.” Qual é a melhor correção para essa frase?',
+  opts:['A frase está correta e não tem exceções.','A diferença está no sentido do sangue: artérias saem do coração e veias chegam a ele. As artérias pulmonares, por exemplo, levam sangue rico em gás carbônico.','Artérias e veias são iguais; só mudam de nome conforme a parte do corpo.','Veias saem do coração e artérias chegam ao coração.'],ans:1},
+ {id:8,type:'mc',text:'Um exame de sangue mostrou que Ana tem pouca hemoglobina e poucas hemácias: ela está com anemia. O que acontece no sangue dela por causa disso?',
+  opts:['O transporte de gás oxigênio para as células fica prejudicado, e ela sente cansaço e fraqueza.','O sangue passa a coagular depressa demais, formando coágulos dentro dos vasos.','Os glóbulos brancos deixam de produzir anticorpos, e ela fica sem defesa.','As válvulas das veias das pernas param de funcionar, e o sangue se acumula ali.'],ans:0},
+ {id:9,type:'mc',text:'Em média, quantos litros de sangue há no corpo de uma pessoa adulta?',
+  opts:['Entre 1 e 2 litros.','Entre 5 e 6 litros.','Entre 10 e 12 litros.','Cerca de 20 litros.'],ans:1},
+ {id:10,type:'sort',single:true,tag:'Arrastar',text:'Leve cada componente do sangue até a sua função principal.',
+  hint:'Toque em um componente e depois no espaço ao lado da função. No computador, você também pode arrastar.',
+  items:[{id:'gv',t:'Glóbulos vermelhos'},{id:'gb',t:'Glóbulos brancos'},{id:'pl',t:'Plaquetas'},{id:'pm',t:'Plasma'}],
+  zones:[{id:'gb',t:'Defesa do organismo contra bactérias, vírus e materiais tóxicos.'},
+         {id:'pm',t:'Parte líquida, formada principalmente por água, com nutrientes e gases dissolvidos.'},
+         {id:'gv',t:'Transporte de gás oxigênio, graças à hemoglobina.'},
+         {id:'pl',t:'Coagulação do sangue, evitando perdas quando um vaso se rompe.'}],
+  correct:{gv:'gv',gb:'gb',pl:'pl',pm:'pm'}},
+ {id:11,type:'mc',text:'Ao centrifugar uma amostra de sangue, ela se separa em duas fases. O que fica na parte de cima do tubo?',
+  opts:['O plasma, líquido amarelado que corresponde a cerca de 50% a 55% do volume do sangue.','As hemácias, que são as mais densas.','As plaquetas, formando uma camada vermelha.','Os glóbulos brancos, ocupando quase todo o tubo.'],ans:0},
+ {id:12,type:'mc',text:'Onde são produzidas as células sanguíneas e as plaquetas?',
+  opts:['No coração.','Nos pulmões.','Na medula óssea vermelha, no interior de alguns ossos.','Na medula espinal, dentro da coluna vertebral.'],ans:2},
+ {id:13,type:'mc',text:'Lucas quase não come feijão, carne vermelha nem verduras de folhas escuras. Com o tempo, a quantidade de hemoglobina no sangue dele pode diminuir, causando:',
+  opts:['anemia, que provoca cansaço porque menos gás oxigênio chega às células.','varizes, porque as válvulas das veias param de funcionar.','excesso de plaquetas, que impede a coagulação.','aumento dos glóbulos brancos e mais defesa do organismo.'],ans:0},
+ {id:14,type:'mc',text:'Alguns glóbulos brancos produzem anticorpos. O que são anticorpos?',
+  opts:['Fragmentos de células que ajudam na coagulação.','Células sem núcleo que transportam gás oxigênio.','Válvulas que impedem o refluxo do sangue.','Proteínas que reconhecem materiais estranhos ao organismo (antígenos) e neutralizam sua ação.'],ans:3},
+ {id:15,type:'order',tag:'Ordenar',text:'Quando um vaso sanguíneo se rompe, o corpo forma um coágulo. Coloque as etapas na ordem em que acontecem.',
+  hint:'Toque nas etapas na ordem certa. Toque de novo em uma etapa para tirar o número dela.',
+  items:[{id:'e2',t:'As plaquetas chegam ao local e grudam na parede machucada do vaso.'},
+         {id:'e1',t:'O vaso se rompe e o sangue começa a sair.'},
+         {id:'e3',t:'Forma-se o coágulo, que tampa o furo e faz o sangramento parar.'}],
+  correct:['e1','e2','e3']},
+ {id:16,type:'mc',text:'Uma pessoa teve problemas de coagulação do sangue, e o médico disse que falta um componente do sangue. Qual é o componente mais provável?',
+  opts:['Plasma.','Glóbulos vermelhos.','Plaquetas.','Hemoglobina.'],ans:2},
+ {id:17,type:'heart',tag:'Tocar',text:'O desenho mostra um coração em corte, visto de frente, como se você estivesse olhando para outra pessoa. Toque na cavidade que impulsiona o sangue para a aorta, levando-o para todo o corpo.',
+  ans:'VE'},
+ {id:18,type:'mc',text:'Em repouso, o médico contou os batimentos de dois pacientes: Pedro, 110 por minuto; Marina, 48 por minuto. Sabendo que a média de um adulto é de cerca de 72 batimentos por minuto, é correto dizer que:',
+  opts:['Pedro está com taquicardia, o coração acelerado, e Marina está com bradicardia, o coração lento.','Pedro está com bradicardia e Marina está com taquicardia.','os dois estão com taquicardia, porque os valores são diferentes de 72.','os dois estão com bradicardia, porque nenhum deles bate exatamente 72 vezes por minuto.'],ans:0},
+ {id:19,type:'blanks',tag:'Completar',text:'Complete o texto sobre os batimentos do coração.',
+  hint:'Toque em uma palavra do banco para preencher a próxima lacuna, ou toque antes na lacuna que quer preencher. Toque em uma lacuna preenchida para esvaziá-la.',
+  parts:['O coração bate por meio de contrações da sua musculatura, chamadas ',0,', seguidas de relaxamentos, chamados ',1,'. Esse conjunto de movimentos recebe o nome de ',2,'. O coração de um adulto se contrai, em média, ',3,' vezes por minuto.'],
+  answers:['sístoles','diástoles','ciclo cardíaco','72'],
+  bank:['diástoles','72','pericárdio','sístoles','ciclo cardíaco','15']},
+ {id:20,type:'mc',text:'A hematose é a troca de gases que transforma o sangue rico em gás carbônico em sangue rico em gás oxigênio. Onde e como ela acontece?',
+  opts:['No coração: ao passar dos átrios para os ventrículos, o sangue troca de gases.','Nos rins: o sangue é filtrado e o gás carbônico sai junto com a urina.','Nos alvéolos dos pulmões: o sangue libera gás carbônico e recebe gás oxigênio.','Nas veias das pernas: as válvulas separam o gás oxigênio do gás carbônico.'],ans:2}
+];
+const byId = {}; Q.forEach(q=>byId[q.id]=q);
+
+let S = {nome:'',sala:'',data:'',started:false,submitted:false,answers:{},result:null};
+try{ const r = localStorage.getItem(KEY); if(r){ S = Object.assign(S, JSON.parse(r)); } }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+const sel = {};
+const $ = id=>document.getElementById(id);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n=>n.toFixed(1).replace('.',',');
+
+/* ---------- Ajuste à tela: tudo cabe, nada rola ---------- */
+let idx = 0, vista = 'capa';
+function fit(){
+  const st = $('stage'), bx = $('fitbox');
+  const padX = st.clientWidth < 420 ? 10 : 16, padY = 10;
+  const dispW = st.clientWidth - padX*2, dispH = st.clientHeight - padY*2;
+  if(dispW <= 0 || dispH <= 0) return;
+  const W = Math.min(820, dispW);
+  let s = 1;
+  for(let i=0;i<5;i++){
+    bx.style.transform = 'none';
+    bx.style.width = (W/s) + 'px';
+    const H = bx.offsetHeight;
+    if(!H) break;
+    const ns = Math.max(.45, Math.min(1, dispH/H));
+    if(Math.abs(ns-s) < .01){ s = ns; break; }
+    s = (s + ns)/2;                       // amortece para não oscilar
+  }
+  bx.style.transform = 'none';            // trava final: nunca deixa sobrar altura
+  bx.style.width = (W/s) + 'px';
+  const Hf = bx.offsetHeight;
+  if(Hf*s > dispH) s = Math.max(.4, dispH/Hf);
+  bx.style.transform = 'scale(' + s + ')';
+  const alt = Hf * s;
+  bx.style.left = (padX + (dispW - W)/2) + 'px';
+  bx.style.top  = (padY + Math.max(0,(dispH - alt)/2)) + 'px';
+  Q.filter(q=>q.type==='match').forEach(fios);
+}
+let fitPend = null;
+function refit(){ cancelAnimationFrame(fitPend); fitPend = requestAnimationFrame(fit); }
+window.addEventListener('resize',()=>{
+  const ae = document.activeElement;
+  if(ae && (ae.tagName==='INPUT')) return;   // teclado do celular não reduz a prova
+  refit();
+});
+window.addEventListener('orientationchange',()=>setTimeout(refit,250));
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+
+function verVista(v){
+  vista = v;
+  $('vCapa').classList.toggle('on', v==='capa');
+  $('vProva').classList.toggle('on', v==='prova');
+  $('vFim').classList.toggle('on', v==='fim');
+  $('barra').classList.toggle('on', v!=='capa');
+  $('navbar').classList.toggle('on', v==='prova');
+  refit();
+}
+function ir(i){
+  idx = Math.max(0, Math.min(Q.length-1, i));
+  S.idx = idx; save();
+  document.querySelectorAll('.q').forEach((el,n)=>el.classList.toggle('ativa', n===idx));
+  $('navMeio').textContent = 'Questão ' + (idx+1) + ' de ' + Q.length;
+  $('ant').disabled = idx===0;
+  $('prox').textContent = idx===Q.length-1 ? 'Entregar' : 'Avançar ▶';
+  if(vista!=='prova') verVista('prova'); else refit();
+}
+
+/* ---------- Capa ---------- */
+$('nome').value = S.nome;
+function renderSalas(){
+  $('salas').innerHTML = SALAS.map(s=>`<button type="button" data-s="${s}" aria-pressed="${S.sala===s}" ${S.started?'disabled':''}>${s}</button>`).join('');
+}
+renderSalas();
+$('salas').addEventListener('click',e=>{
+  const b = e.target.closest('button'); if(!b||S.started) return;
+  S.sala = b.dataset.s; save(); renderSalas();
+});
+$('nome').addEventListener('input',e=>{ S.nome = e.target.value; save(); });
+$('comecar').addEventListener('click',()=>{
+  const nome = $('nome').value.trim();
+  if(nome.length < 3){ $('erroCapa').textContent = 'Digite seu nome completo para começar.'; $('nome').focus(); return; }
+  if(!S.sala){ $('erroCapa').textContent = 'Escolha a sua sala para começar.'; return; }
+  $('erroCapa').textContent = '';
+  S.nome = nome; S.started = true; save();
+  iniciar();
+});
+
+function iniciar(){
+  $('nome').disabled = true; renderSalas();
+  $('acoesCapa').style.display = 'none';
+  $('barraAluno').textContent = S.nome + ', sala ' + S.sala;
+  montar();
+  if(!S.submitted) ir(S.idx||0);
+}
+
+/* ---------- Navegação ---------- */
+$('ant').addEventListener('click',()=>ir(idx-1));
+$('prox').addEventListener('click',()=>{
+  if(idx < Q.length-1) ir(idx+1); else pedirEntrega();
+});
+
+/* ---------- Montagem ---------- */
+function montar(){
+  const tagTxt = {Ligar:'Interativa: ligar',Arrastar:'Interativa: arrastar',Ordenar:'Interativa: ordenar',Tocar:'Interativa: tocar',Completar:'Interativa: completar'};
+  $('questoes').innerHTML = Q.map(q=>`
+    <article class="q" id="q${q.id}" aria-labelledby="qt${q.id}">
+      <div class="q-cab">
+        <span class="q-num">${q.id}</span>
+        ${q.tag?`<span class="tag">${tagTxt[q.tag]}</span>`:''}
+        <span class="valor">0,5 ponto</span>
+      </div>
+      <p class="q-texto" id="qt${q.id}">${q.text}</p>
+      ${q.hint?`<p class="dica">${q.hint}</p>`:''}
+      <div class="body" data-q="${q.id}"></div>
+      ${q.type!=='mc'?`<button class="limpar" data-limpar="${q.id}">Limpar esta questão</button>`:''}
+      <img class="marca" src="icons/icon-192.png" alt="" aria-hidden="true">
+    </article>`).join('');
+  Q.forEach(render);
+  document.querySelectorAll('.body').forEach(b=>{
+    b.addEventListener('click',onClick);
+    b.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ') && e.target.classList.contains('cav')){ e.preventDefault(); onClick(e); }
+    });
+    b.addEventListener('dragstart',onDragStart);
+    b.addEventListener('dragover',onDragOver);
+    b.addEventListener('dragleave',e=>{ const z=e.target.closest('[data-zone]'); if(z) z.classList.remove('alvo'); });
+    b.addEventListener('drop',onDrop);
+  });
+  document.querySelectorAll('[data-limpar]').forEach(b=>b.addEventListener('click',()=>{
+    if(S.submitted) return;
+    const id = +b.dataset.limpar; delete S.answers[id]; sel[id]=null; save(); render(byId[id]); progresso(); refit();
+  }));
+  progresso();
+  if(S.submitted) mostrarResultado();
+}
+
+function render(q){
+  const body = document.querySelector(`.body[data-q="${q.id}"]`);
+  const a = S.answers[q.id];
+  const s = sel[q.id];
+  if(q.type==='mc'){
+    if(q.figs){
+      body.innerHTML = `<div class="figs">${q.opts.map((o,i)=>`<button class="opt fig ${a===i?'on':''}" data-i="${i}" aria-pressed="${a===i}" aria-label="Figura ${'abcde'[i]}"><span class="let">${'abcde'[i]}</span>${o}</button>`).join('')}</div>`;
+    } else {
+      body.innerHTML = q.opts.map((o,i)=>`<button class="opt ${a===i?'on':''}" data-i="${i}" aria-pressed="${a===i}"><span class="let">${'abcde'[i]}</span><span>${o}</span></button>`).join('');
+    }
+  }
+  else if(q.type==='match'){
+    const m = a||{};
+    const colors = ['var(--art)','var(--vei)','var(--ok)'];
+    const colorOf = lid=>colors[q.left.findIndex(l=>l.id===lid)];
+    body.innerHTML = `<div class="match"><svg aria-hidden="true"></svg>
+      <div class="col L">${q.left.map(l=>`<button class="mbtn ${s===l.id?'on':''}" data-side="L" data-id="${l.id}" style="${m[l.id]?`border-color:${colorOf(l.id)}`:''}" aria-pressed="${s===l.id}">${l.t}</button>`).join('')}</div>
+      <div class="col R">${q.right.map(r=>{ const lid = Object.keys(m).find(k=>m[k]===r.id); return `<button class="mbtn" data-side="R" data-id="${r.id}" style="${lid?`border-color:${colorOf(lid)}`:''}">${r.t}</button>`; }).join('')}</div></div>`;
+    requestAnimationFrame(()=>fios(q));
+  }
+  else if(q.type==='sort'){
+    const m = a||{};
+    const chip = it=>`<button class="chip ${s===it.id?'on':''}" draggable="true" data-item="${it.id}" aria-pressed="${s===it.id}">${it.t}</button>`;
+    const livres = q.items.filter(it=>!m[it.id]);
+    body.innerHTML = `<div class="pool" data-zone="">${livres.length?livres.map(chip).join(''):'<span class="vazio">Todos os itens foram colocados. Para trocar, toque em um item e depois no novo lugar.</span>'}</div>
+      <div class="zonas ${q.single?'um':'duas'}">${q.zones.map(z=>`<div class="zona ${z.cls||''}" data-zone="${z.id}"><h4>${z.t}</h4><div class="dentro">${q.items.filter(it=>m[it.id]===z.id).map(chip).join('')}</div></div>`).join('')}</div>`;
+  }
+  else if(q.type==='order'){
+    const m = a||[];
+    body.innerHTML = `<div class="ordem">${q.items.map(it=>{ const n = m.indexOf(it.id); return `<button class="obtn ${n>=0?'on':''}" data-o="${it.id}"><span class="n">${n>=0?n+1:''}</span><span>${it.t}</span></button>`; }).join('')}</div>`;
+  }
+  else if(q.type==='heart'){
+    const cav = (id,d,label)=>`<path class="cav ${a===id?'on':''}" data-ch="${id}" d="${d}" tabindex="0" role="button" aria-label="${label}" aria-pressed="${a===id}"/>`;
+    body.innerHTML = `<div class="coracao">
+      <svg viewBox="0 0 300 300" role="group" aria-label="Coração em corte com quatro cavidades">
+        <path class="vaso" d="M126 70 L126 18 L150 18 L150 70 Z"/>
+        <path class="vaso" d="M156 72 C156 30,176 14,206 14 C236 14,250 34,250 56 L230 56 C230 42,222 34,206 34 C190 34,178 44,178 72 Z"/>
+        <path class="vaso" d="M82 80 L82 20 L104 20 L104 80 Z"/>
+        <path class="contorno" d="M150 66 C122 50,60 52,48 102 C38 150,80 214,168 286 C240 222,272 160,258 104 C248 58,184 46,150 66 Z"/>
+        ${cav('AD','M64 104 C66 80,96 68,130 78 L138 128 L72 134 C66 126,63 116,64 104 Z','Cavidade superior, à esquerda da imagem')}
+        ${cav('AE','M162 78 C196 66,238 76,242 104 C243 116,239 126,232 132 L158 128 Z','Cavidade superior, à direita da imagem')}
+        ${cav('VD','M76 148 L138 142 L148 248 C116 220,88 186,76 148 Z','Cavidade inferior, à esquerda da imagem')}
+        ${cav('VE','M166 142 L226 146 C220 190,198 226,168 258 Z','Cavidade inferior, à direita da imagem')}
+      </svg>
+      <p class="leg">${a?'<strong>Você marcou uma cavidade.</strong> Toque em outra se quiser trocar.':'Nenhuma cavidade marcada ainda.'}</p>
+    </div>`;
+  }
+  else if(q.type==='blanks'){
+    const m = a||[null,null,null,null];
+    const used = m.filter(Boolean);
+    body.innerHTML = `<p class="texto-lac">${q.parts.map(p=>typeof p==='number'
+        ? `<button class="blank ${m[p]?'cheia':''} ${s===p?'on':''}" data-b="${p}" aria-label="Lacuna ${p+1}${m[p]?': '+m[p]:', vazia'}">${m[p]||'______'}</button>`
+        : p).join('')}</p>
+      <div class="banco">${q.bank.filter(w=>!used.includes(w)).map(w=>`<button class="chip" data-w="${w}">${w}</button>`).join('')||'<span class="vazio">Banco de palavras vazio.</span>'}</div>`;
+  }
+  document.getElementById('q'+q.id).classList.toggle('feita', respondida(q));
+  if(S.submitted) document.getElementById('q'+q.id).classList.add('travada');
+}
+
+function fios(q){
+  const wrap = document.querySelector(`.body[data-q="${q.id}"] .match`); if(!wrap||!wrap.offsetParent) return;
+  const svg = wrap.querySelector('svg'); const box = wrap.getBoundingClientRect();
+  const m = S.answers[q.id]||{};
+  const colors = ['var(--art)','var(--vei)','var(--ok)'];
+  svg.setAttribute('viewBox',`0 0 ${box.width} ${box.height}`);
+  svg.innerHTML = Object.keys(m).map(lid=>{
+    const lb = wrap.querySelector(`[data-side="L"][data-id="${lid}"]`).getBoundingClientRect();
+    const rb = wrap.querySelector(`[data-side="R"][data-id="${m[lid]}"]`).getBoundingClientRect();
+    const x1 = lb.right-box.left, y1 = lb.top+lb.height/2-box.top, x2 = rb.left-box.left, y2 = rb.top+rb.height/2-box.top;
+    const c = colors[q.left.findIndex(l=>l.id===lid)], mx = (x1+x2)/2;
+    return `<path d="M${x1} ${y1} C${mx} ${y1},${mx} ${y2},${x2} ${y2}" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="${x1}" cy="${y1}" r="5" fill="${c}"/><circle cx="${x2}" cy="${y2}" r="5" fill="${c}"/>`;
+  }).join('');
+}
+
+/* ---------- Interação ---------- */
+function onClick(e){
+  if(S.submitted) return;
+  const body = e.currentTarget, q = byId[+body.dataset.q], id = q.id;
+  if(q.type==='mc'){
+    const b = e.target.closest('.opt'); if(!b) return;
+    S.answers[id] = +b.dataset.i;
+  }
+  else if(q.type==='match'){
+    const b = e.target.closest('.mbtn'); if(!b) return;
+    const m = S.answers[id] = S.answers[id]||{};
+    if(b.dataset.side==='L'){ sel[id] = sel[id]===b.dataset.id ? null : b.dataset.id; }
+    else{
+      const rid = b.dataset.id;
+      const dono = Object.keys(m).find(k=>m[k]===rid);
+      if(sel[id]){ if(dono) delete m[dono]; m[sel[id]] = rid; sel[id] = null; }
+      else if(dono){ delete m[dono]; }
+      else return;
+    }
+  }
+  else if(q.type==='sort'){
+    const c = e.target.closest('.chip');
+    if(c){ sel[id] = sel[id]===c.dataset.item ? null : c.dataset.item; }
+    else{
+      const z = e.target.closest('[data-zone]'); if(!z || !sel[id]) return;
+      colocar(q, sel[id], z.dataset.zone); sel[id] = null;
+    }
+  }
+  else if(q.type==='order'){
+    const b = e.target.closest('.obtn'); if(!b) return;
+    const m = S.answers[id] = S.answers[id]||[];
+    const i = m.indexOf(b.dataset.o);
+    if(i>=0) m.splice(i,1); else m.push(b.dataset.o);
+  }
+  else if(q.type==='heart'){
+    const c = e.target.closest('.cav'); if(!c) return;
+    S.answers[id] = c.dataset.ch;
+  }
+  else if(q.type==='blanks'){
+    const m = S.answers[id] = S.answers[id]||[null,null,null,null];
+    const bl = e.target.closest('.blank'), w = e.target.closest('[data-w]');
+    if(bl){ const i = +bl.dataset.b; if(m[i]){ m[i] = null; sel[id] = i; } else sel[id] = sel[id]===i ? null : i; }
+    else if(w){
+      let t = (sel[id]!=null && !m[sel[id]]) ? sel[id] : m.findIndex(x=>!x);
+      if(t<0) return;
+      m[t] = w.dataset.w; sel[id] = null;
+    } else return;
+  }
+  save(); render(q); progresso(); refit();
+  if(q.type==='heart'){
+    const f = body.querySelector('.cav.on');
+    if(f) f.focus({preventScroll:true});
+  }
+}
+function colocar(q,item,zona){
+  const m = S.answers[q.id] = S.answers[q.id]||{};
+  if(!zona){ delete m[item]; return; }
+  if(q.single){ Object.keys(m).forEach(k=>{ if(m[k]===zona && k!==item) delete m[k]; }); }
+  m[item] = zona;
+}
+function onDragStart(e){
+  const c = e.target.closest && e.target.closest('.chip[data-item]'); if(!c||S.submitted) return;
+  e.dataTransfer.setData('text/plain', c.dataset.item); e.dataTransfer.effectAllowed='move';
+}
+function onDragOver(e){
+  const z = e.target.closest('[data-zone]'); if(!z) return;
+  e.preventDefault(); z.classList.add('alvo');
+}
+function onDrop(e){
+  const z = e.target.closest('[data-zone]'); if(!z||S.submitted) return;
+  e.preventDefault();
+  const q = byId[+e.currentTarget.dataset.q], item = e.dataTransfer.getData('text/plain');
+  if(!q.items.some(i=>i.id===item)) return;
+  colocar(q,item,z.dataset.zone); sel[q.id]=null; save(); render(q); progresso(); refit();
+}
+
+/* ---------- Progresso e nota ---------- */
+function respondida(q){
+  const a = S.answers[q.id];
+  if(a===undefined||a===null) return false;
+  if(q.type==='mc'||q.type==='heart') return true;
+  if(q.type==='match') return q.left.every(l=>a[l.id]);
+  if(q.type==='sort') return q.items.every(i=>a[i.id]);
+  if(q.type==='order') return a.length===q.items.length;
+  if(q.type==='blanks') return a.every(Boolean);
+  return false;
+}
+function progresso(){
+  const n = Q.filter(respondida).length;
+  $('barraCont').textContent = `${n}/20`;
+  $('barraFill').style.width = (n/20*100)+'%';
+}
+function pontos(q){
+  const a = S.answers[q.id];
+  if(a===undefined||a===null) return 0;
+  let f = 0;
+  if(q.type==='mc') f = a===q.ans ? 1 : 0;
+  else if(q.type==='heart') f = a===q.ans ? 1 : 0;
+  else if(q.type==='match') f = q.left.filter(l=>a[l.id]===l.id).length/q.left.length;
+  else if(q.type==='sort') f = q.items.filter(i=>a[i.id]===q.correct[i.id]).length/q.items.length;
+  else if(q.type==='order') f = q.correct.filter((c,i)=>a[i]===c).length/q.correct.length;
+  else if(q.type==='blanks') f = q.answers.filter((w,i)=>a[i]===w).length/q.answers.length;
+  return f*VAL;
+}
+
+/* ---------- Entrega ---------- */
+let faltando = [];
+function pedirEntrega(){
+  if(S.submitted) return;
+  faltando = Q.filter(q=>!respondida(q)).map(q=>q.id);
+  if(faltando.length){
+    $('modalT').textContent = faltando.length===1 ? 'Falta 1 questão' : `Faltam ${faltando.length} questões`;
+    $('modalP').textContent = `Ainda não estão completas: ${faltando.join(', ')}. Se entregar agora, elas contam como estão. Depois da entrega, não é possível mudar as respostas.`;
+    $('modalOk').textContent = 'Entregar assim mesmo';
+    $('modalVolta').textContent = 'Ir para a questão ' + faltando[0];
+  } else {
+    $('modalT').textContent = 'Entregar a prova?';
+    $('modalP').textContent = 'Depois da entrega, não é possível mudar as respostas.';
+    $('modalOk').textContent = 'Entregar';
+    $('modalVolta').textContent = 'Voltar e revisar';
+  }
+  $('modal').classList.add('on'); $('modalVolta').focus();
+}
+$('modalVolta').addEventListener('click',()=>{
+  $('modal').classList.remove('on');
+  if(faltando.length) ir(faltando[0]-1);
+});
+$('modalOk').addEventListener('click',()=>{
+  $('modal').classList.remove('on');
+  const pts = Q.map(pontos);
+  const total = Math.round(pts.reduce((s,x)=>s+x,0)*10)/10;
+  S.submitted = true;
+  S.result = {nota: total, pts, quando: new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})};
+  save();
+  Q.forEach(render);
+  mostrarResultado();
+});
+
+function mostrarResultado(){
+  const r = S.result; if(!r) return;
+  $('notaCapa').textContent = fmt(r.nota);
+  const el = $('resultado');
+  el.innerHTML = `<img class="selo-fim" src="icons/icon-192.png" alt="" aria-hidden="true">
+    <h2>Prova entregue</h2>
+    <p class="nota">${fmt(r.nota)} <small>de 10,0</small></p>
+    <p class="res-info">${esc(S.nome)}, sala ${esc(S.sala)}. Entregue em ${esc(r.quando)}.</p>
+    <div class="grade">${r.pts.map((p,i)=>{ const cls = p>=VAL-1e-9 ? 'c' : (p>0 ? 'p' : 'e'); return `<div class="${cls}"><span>Questão ${i+1}</span><strong>${p.toFixed(2).replace('.',',')}</strong></div>`; }).join('')}</div>
+    <p class="aviso-final">Verde: acertou tudo. Amarelo: acertou em parte. Vermelho: não pontuou. Mostre esta tela ao professor.</p>`;
+  verVista('fim');
+}
+
+if(S.started) iniciar(); else refit();
+})();
+</script>
+</body>
+</html>
