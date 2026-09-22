@@ -28,71 +28,92 @@ Página única, sem servidor e sem coleta de dados: nada sai do aparelho do alun
 
 A prova pode mandar a nota sozinha, assim que o aluno entrega, para uma
 planilha do Google e para o e-mail do professor. Enquanto isso não for
-configurado, a prova funciona normalmente e a nota só aparece na tela.
 
-A planilha fica **organizada por turma**: uma aba para cada sala (801M, 802M,
-803M, 801T, 802T), com os alunos em ordem alfabética, e uma aba **Resumo** com
-quantidade, média, maior e menor nota de cada turma.
+## As notas
 
-Em cada aba de turma:
+Quando o aluno entrega, a prova manda a nota para o **mesmo Formulário Google
+que o app de Ligações Químicas já usa**. Não há nada para configurar: já está
+ligado. As notas caem naquela planilha que você já conhece.
 
-| Aluno(a) | Nota | Certas | Parciais | Zeradas | Entregue em | Recebido em | Q1…Q20 | ID |
-|---|---|---|---|---|---|---|---|---|
+Cada prova entregue vira uma linha com seis campos:
 
-As colunas Q1 a Q20 trazem os pontos de cada questão, o que mostra de relance
-qual questão a turma inteira errou. Notas abaixo de 6,0 saem com fundo vermelho.
+| Campo | O que vem | Exemplo |
+|---|---|---|
+| Nome | o que o aluno digitou | Ângela Souza Lima |
+| Turma | a sala escolhida na capa | 802T |
+| Turno | deduzido da sala (M ou T) | Tarde |
+| Nota | de 0,0 a 10,0 | 7,8 |
+| Acertos | questões com pontuação cheia | 13 de 20 |
+| Detalhe | prova, pontos de cada questão e hora | Cardiovascular · 1:0,5 2:0,5 3:0,33 … |
 
-### Passo a passo (uma vez só)
+O campo **Detalhe começa com o nome da prova**, e é por ele que se separa o
+cardiovascular das outras provas na mesma planilha. A coluna **Turma** separa
+as salas.
 
-1. Em <https://drive.google.com>, crie uma **Planilha Google** em branco e dê um
-   nome, por exemplo *Notas — Cardiovascular*. Não precisa criar abas nem
-   cabeçalhos: o script cria tudo sozinho na primeira prova que chegar.
-2. Nessa planilha, vá em **Extensões > Apps Script**.
-3. Apague o conteúdo do editor, cole todo o arquivo
-   [`apps-script/Codigo.gs`](apps-script/Codigo.gs) e salve (💾).
-4. Clique em **Implantar > Nova implantação**. No tipo (engrenagem), escolha
-   **App da Web** e preencha:
-   - *Executar como*: **Eu**
-   - *Quem pode acessar*: **Qualquer pessoa**
-5. Clique em **Implantar** e autorize o acesso. Vai aparecer um aviso do Google
-   dizendo que o app não é verificado: em **Avançado > Acessar (nome do
-   projeto)**, confirme. O aviso é esperado, porque o script é seu e não passou
-   pela revisão pública do Google.
-6. Copie a **URL do app da Web** (termina em `/exec`).
-7. Abra o arquivo `index.html`, procure a linha `const ENVIO_URL = '';` (perto do
-   começo do script) e cole a URL entre as aspas. Envie a alteração ao GitHub.
+### Um e-mail por dia, com as notas na planilha
 
-### Conferindo antes da aula
+O Planilhas faz isso sozinho, sem script nenhum:
 
-- Cole a URL `/exec` no navegador: deve responder
-  `{"ok":true,"servico":"recebedor de notas no ar"}`.
-- Faça a prova você mesmo até o fim. Na tela da nota deve aparecer
-  **✔ Nota enviada ao professor**, e a linha deve surgir na planilha.
-- Se aparecer o aviso de sem conexão, a nota fica guardada no aparelho e é
-  enviada sozinha quando a internet voltar. Nenhuma nota se perde, e o botão
-  **Tentar enviar de novo** força a tentativa.
+1. Abra a planilha de respostas do formulário.
+2. Menu **Ferramentas → Regras de notificação**.
+3. Marque **Um usuário enviar um formulário** e, logo abaixo,
+   **E-mail — resumo diário**.
+4. Salvar.
 
-### E-mail
+Pronto: chega **um e-mail só por dia** avisando que houve provas novas, e o
+link dentro dele abre a planilha com as notas. Se marcar "E-mail —
+imediatamente", volta a ser um aviso por aluno.
 
-Por padrão, cada prova entregue gera um e-mail para
-`amauri.junior@escola.seduc.pa.gov.br`, com a nota e os pontos de cada questão.
-Para mudar o destinatário, edite `EMAIL_PROFESSOR` no início do script.
+### Deixando a planilha organizada por turma
 
-Atenção à cota do Google: contas `@gmail.com` enviam no máximo **100 e-mails por
-dia**; contas institucionais do Google Workspace, 1500. Cinco turmas de 35 alunos
-dão 175 e-mails e estouram a cota de uma conta comum — nesse caso a nota
-continua indo para a planilha, só o e-mail deixa de sair.
+Na planilha de respostas, crie uma aba para cada sala e cole **uma fórmula só**,
+trocando o `801M` pelo nome da turma. Ela se atualiza sozinha a cada prova nova:
 
-Para receber **um e-mail só por dia**, com todas as notas separadas por turma:
+```
+=QUERY('Respostas ao formulário 1'!A:F; "select B, E, F where C = '801M' and F starts with 'Cardiovascular' order by B"; 1)
+```
 
-1. No script, troque `var ENVIAR_EMAIL = true;` por `false`.
-2. No editor do Apps Script, abra **Acionadores** (o relógio, à esquerda) e clique
-   em **Adicionar acionador**.
-3. Função: `enviarResumoDoDia` · Origem: **Baseado no tempo** · Tipo: **Diário** ·
-   Horário: o de sua preferência.
+Isso lista, em ordem alfabética, o nome, a nota e o detalhe de quem fez a prova
+naquela turma. Para uma aba de **Resumo**, com a média de cada turma:
 
-### Privacidade
+```
+=QUERY('Respostas ao formulário 1'!A:F; "select C, count(E), avg(E), max(E), min(E) where F starts with 'Cardiovascular' group by C"; 1)
+```
 
-Nada é coletado além do que o aluno digita: nome, sala e as respostas. As notas
-vão só para a sua planilha e o seu e-mail. Enquanto o aluno não entrega, tudo
-fica apenas no aparelho dele.
+Duas observações sobre essas fórmulas:
+
+- O nome `Respostas ao formulário 1` precisa ser igual ao da aba onde o
+  formulário despeja as respostas. Se a sua tiver outro nome, troque.
+- As letras são as colunas: A é o carimbo de data/hora, B o nome, C a turma,
+  D o turno, E a nota, F o detalhe. Se a ordem das perguntas do seu formulário
+  for outra, ajuste as letras.
+- Se a média sair vazia, a planilha não está no local Brasil: em
+  **Arquivo → Configurações → Local**, escolha *Brasil*, para que `7,8` seja
+  lido como número.
+
+### O que esperar, com honestidade
+
+- **Precisa de internet na hora da entrega.** Se faltar, a nota fica guardada
+  no próprio aparelho e é enviada sozinha quando a conexão voltar — inclusive
+  se o aluno fechar e reabrir a prova. O aviso na tela diz qual é o caso, e há
+  um botão para forçar a tentativa.
+- **A prova não recebe confirmação de volta.** O navegador não deixa uma página
+  ler a resposta do Google (é o preço de enviar direto, sem servidor). Ela sabe
+  que a nota saiu do aparelho, não que chegou na planilha. Por isso a tela da
+  nota continua servindo de comprovante — peça que o aluno mostre antes de sair.
+- **Isto roda no aparelho do aluno.** Quem entender de navegador consegue forjar
+  a nota. Para prova em sala, com você presente, costuma bastar.
+- Para desligar o envio, troque `ativo: true` por `false` no `index.html`.
+
+### Alternativa: planilha própria, montada sozinha
+
+Se um dia quiser uma planilha só desta prova, que se organize em abas por turma
+sem fórmula nenhuma e mande e-mail com a nota no assunto, o arquivo
+[`apps-script/Codigo.gs`](apps-script/Codigo.gs) faz isso. É mais trabalhoso de
+instalar (pede Apps Script e implantação) e está lá como opção, não como
+caminho recomendado.
+
+## Privacidade
+
+Nada é coletado além do que o aluno digita: nome, sala e as respostas. Enquanto
+ele não entrega, tudo fica apenas no aparelho dele.

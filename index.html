@@ -320,9 +320,31 @@ const KEY = 'prova-cfb3-cardiovascular-v1';
 const SALAS = ['801M','802M','803M','801T','802T'];
 const VAL = 0.5;
 
-/* Cole aqui a URL do app da web do Apps Script (termina em /exec).
-   Em branco, a prova funciona normalmente e só não envia a nota. */
-const ENVIO_URL = '';
+/* ============================================================
+   A NOTA CHEGA AO PROFESSOR
+
+   Quando o aluno entrega, a prova manda o resultado para o mesmo
+   FORMULÁRIO GOOGLE que o app de Ligações Químicas já usa — as notas
+   caem naquela planilha, sem criar nada novo. Esta prova se distingue
+   das outras pela coluna Turma (801M, 802M...) e pelo começo do campo
+   Detalhe, que traz o nome da prova.
+
+   Para desligar o envio, ponha 'ativo: false'.
+   ============================================================ */
+const ENVIO = {
+  ativo: true,
+  url: 'https://docs.google.com/forms/d/e/' +
+       '1FAIpQLSerpi9JTqpfRMGlgOuP2gWS7B2oMsIeIt3Adm7aCk_B2Cu6Hw/formResponse',
+  campos: {
+    nome:    'entry.1743318295',
+    turma:   'entry.1351245089',
+    turno:   'entry.191858940',
+    nota:    'entry.2016560989',
+    acertos: 'entry.780945658',
+    detalhe: 'entry.252197904'
+  }
+};
+const PROVA = 'Cardiovascular';
 
 const Q = [
  {id:1,type:'mc',text:'O sistema cardiovascular é formado por três elementos principais. Quais são eles?',
@@ -783,6 +805,17 @@ $('modalOk').addEventListener('click',()=>{
 
 /* ---------- Envio da nota ao professor ---------- */
 const FILA = KEY + '-fila';
+
+/* O formulário não responde a páginas de fora ('no-cors'): a prova sabe que
+   a nota saiu do aparelho, mas não recebe confirmação de volta. Por isso o
+   comprovante na tela continua valendo, e por isso vale testar antes da aula. */
+function enviarUm(item){
+  const corpo = new URLSearchParams();
+  Object.keys(ENVIO.campos).forEach(k=>{
+    if(item[k] !== undefined) corpo.append(ENVIO.campos[k], item[k]);
+  });
+  return fetch(ENVIO.url, {method:'POST', mode:'no-cors', body:corpo});
+}
 function lerFila(){ try{ return JSON.parse(localStorage.getItem(FILA)||'[]'); }catch(e){ return []; } }
 function gravarFila(f){ try{ localStorage.setItem(FILA, JSON.stringify(f)); }catch(e){} }
 
@@ -792,14 +825,17 @@ function enfileirar(){
   const zeradas = r.pts.filter(p=>p<=1e-9).length;
   const f = lerFila();
   if(f.some(x=>x.id===S.envioId)) return;
+  const pontos = r.pts.map((p,i)=>(i+1)+':'+String(Math.round(p*100)/100).replace('.',',')).join(' ');
   f.push({
     id: S.envioId,
-    prova: 'Sistema cardiovascular',
-    nome: S.nome, turma: S.sala,
-    entregue: r.quando,
-    nota: r.nota, total: 10,
-    certas, parciais: Q.length - certas - zeradas, zeradas,
-    questoes: r.pts.map(p=>Math.round(p*100)/100)
+    nome: S.nome,
+    turma: S.sala,
+    turno: S.sala.slice(-1)==='T' ? 'Tarde' : 'Manhã',
+    nota: fmt(r.nota),
+    acertos: certas + ' de ' + Q.length,
+    detalhe: PROVA + ' · ' + pontos +
+             ' · ' + (Q.length-certas-zeradas) + ' em parte, ' + zeradas + ' zeradas' +
+             ' · entregue ' + r.quando
   });
   gravarFila(f);
 }
@@ -819,17 +855,14 @@ function estadoEnvio(estado){
 }
 
 async function enviarFila(){
-  if(!ENVIO_URL) return estadoEnvio('sem-config');
+  if(!ENVIO.ativo || !ENVIO.url) return estadoEnvio('sem-config');
   const f = lerFila();
   if(!f.length) return estadoEnvio('ok');
   estadoEnvio('enviando');
   const restantes = [];
   for(const item of f){
-    try{
-      const resp = await fetch(ENVIO_URL,{method:'POST',body:JSON.stringify(item)});
-      const txt = await resp.text();
-      if(!/"ok"\s*:\s*true/.test(txt)) throw new Error(txt.slice(0,120));
-    }catch(e){ restantes.push(item); }
+    try{ await enviarUm(item); }
+    catch(e){ restantes.push(item); }
   }
   gravarFila(restantes);
   estadoEnvio(restantes.length ? 'falhou' : 'ok');
@@ -850,7 +883,7 @@ function mostrarResultado(){
     <button class="btn sec" id="reenviar" style="display:none">Tentar enviar de novo</button>`;
   $('reenviar').addEventListener('click', enviarFila);
   verVista('fim');
-  if(ENVIO_URL) enviarFila();
+  if(ENVIO.ativo) enviarFila();
 }
 
 if(S.started) iniciar(); else refit();
