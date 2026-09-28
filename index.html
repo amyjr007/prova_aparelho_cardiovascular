@@ -288,7 +288,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .recado{margin:0 0 14px;font-size:17px;font-weight:700;line-height:1.35;border-radius:6px;padding:10px 14px}
 .recado.boa{background:var(--ok-soft);color:var(--ok)}
 .recado.anima{background:var(--vei-soft);color:var(--vei)}
-.acoes-fim{margin-top:16px}
+.acoes-fim{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .envio{margin:14px 0 0;font-size:15px;font-weight:700;color:var(--muted)}
 .envio.ok{color:var(--ok)}
 .envio.falhou{color:var(--warn);font-weight:400}
@@ -1267,8 +1267,29 @@ function pontos(q){
 }
 
 /* ---------- Entrega ---------- */
-let faltando = [];
+let faltando = [], modalAcao = 'entregar';
+
+/* Recomeçar com outra versão: a nota já entregue continua valendo e já foi
+   enviada. Aqui só se limpa a tela e se sorteia uma versão diferente desta. */
+function pedirOutraProva(){
+  faltando = []; modalAcao = 'outra';
+  $('modalT').textContent = 'Fazer uma prova diferente?';
+  $('modalP').textContent = 'Sua nota já foi registrada e enviada ao professor, e não se perde. Você vai receber outra versão, com as questões e as alternativas em outra ordem. As respostas desta prova saem da tela.';
+  $('modalOk').textContent = 'Começar a nova prova';
+  $('modalVolta').textContent = 'Ficar nesta';
+  $('modal').classList.add('on'); $('modalVolta').focus();
+}
+function outraProva(){
+  const nova = (S.versao + 1 + Math.floor(Math.random()*(VERSOES-1))) % VERSOES;  // qualquer uma, menos a atual
+  S = {nome:S.nome, sala:S.sala, started:false, submitted:false, answers:{}, result:null, versao:nova, idx:0};
+  save();
+  // se o link tinha ?v= travando uma versão, a trava sai — senão voltaria a mesma
+  const u = new URL(location.href); u.searchParams.delete('v');
+  location.replace(u.toString());   // a prova é remontada do zero com a versão nova
+}
+
 function pedirEntrega(){
+  modalAcao = 'entregar';
   if(S.submitted) return;
   faltando = Q.filter(q=>!respondida(q)).map(q=>q.n);
   if(faltando.length){
@@ -1290,6 +1311,7 @@ $('modalVolta').addEventListener('click',()=>{
 });
 $('modalOk').addEventListener('click',()=>{
   $('modal').classList.remove('on');
+  if(modalAcao === 'outra'){ outraProva(); return; }
   const pts = Q.map(pontos);
   const total = Math.round(pts.reduce((s,x)=>s+x,0)*10)/10;
   S.submitted = true;
@@ -1386,11 +1408,13 @@ function mostrarResultado(){
     <p class="recado ${r.nota>=6?'boa':'anima'}">${(r.nota>=6?FRASES_PARABENS:FRASES_ANIMO)[r.frase||0]}</p>
     <div class="grade">${r.pts.map((p,i)=>{ const cls = p>=VAL-1e-9 ? 'c' : (p>0 ? 'p' : 'e'); return `<div class="${cls}"><span>Questão ${i+1}</span><strong>${p.toFixed(2).replace('.',',')}</strong></div>`; }).join('')}</div>
     <p class="aviso-final">Verde: acertou tudo. Amarelo: acertou em parte. Vermelho: não pontuou. Mostre esta tela ao professor.</p>
-    <div class="acoes-fim"><button class="btn" id="verGabarito">Conferir o gabarito</button></div>
+    <div class="acoes-fim"><button class="btn" id="verGabarito">Conferir o gabarito</button>
+      <button class="btn sec" id="outraProva">Fazer uma prova diferente</button></div>
     <p class="envio" id="envio"></p>
     <button class="btn sec" id="reenviar" style="display:none">Tentar enviar de novo</button>`;
   $('reenviar').addEventListener('click', enviarFila);
   $('verGabarito').addEventListener('click', ()=>{ verVista('prova'); ir(0); });
+  $('outraProva').addEventListener('click', pedirOutraProva);
   verVista('fim');
   tocarResultado();
   if(ENVIO.ativo) enviarFila();
